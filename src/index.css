@@ -1,0 +1,183 @@
+/* RPG Pixel Theme */
+@import url('https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;700&family=M+PLUS+Rounded+1c:wght@400;700&family=Noto+Serif+JP:wght@400;700&display=swap');
+
+:root {
+  /* Colors - Dark RPG Theme */
+  --color-bg-app: #2d2b55;
+  --color-bg-card: #1e1e3f;
+
+  --color-primary: #ff0055;
+  /* Hot Pink */
+  --color-primary-dark: #b3003b;
+  --color-secondary: #00e5ff;
+  /* Cyan */
+  --color-accent: #ffd700;
+  /* Gold */
+
+  --color-text-main: #ffffff;
+  --color-text-sub: #a5a5d3;
+
+  --color-border: #ffffff;
+
+  --shadow-pixel: 4px 4px 0px rgba(0, 0, 0, 0.5);
+
+  --font-family: 'DotGothic16', sans-serif;
+  --radius-pixel: 4px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--color-bg-app);
+  color: var(--color-text-main);
+  /* Retro grid background pattern */
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 20px 20px;
+  line-height: 1.5;
+  overflow-x: hidden;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+#root {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  position: relative;
+  background-color: var(--color-bg-app);
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+  border-left: 2px solid rgba(255, 255, 255, 0.1);
+  border-right: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+/* RPG UI Components */
+
+.card {
+  background: var(--color-bg-card);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-pixel);
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow-pixel);
+  position: relative;
+}
+
+/* Pixel corners effect (optional advanced trick, sticking to border for stability now) */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  font-family: var(--font-family);
+  font-size: 1rem;
+  border: 2px solid white;
+  border-radius: var(--radius-pixel);
+  cursor: pointer;
+  transition: transform 0.1s;
+  box-shadow: var(--shadow-pixel);
+  text-decoration: none;
+}
+
+.btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);
+}
+
+.btn-primary {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.btn-secondary {
+  background-color: var(--color-bg-card);
+  /* Dark button with cyan border/text usually looks cool */
+  border-color: var(--color-secondary);
+  color: var(--color-secondary);
+}
+
+/* Animations */
+@keyframes bounce {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 0.6;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.animate-pop {
+  animation: bounce 0.3s ease-in-out;
+}
+
+.animate-float {
+  animation: float 2s infinite ease-in-out;
+}
+
+/* Custom Scrollbar for Webkit */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-app);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-text-sub);
+  border-radius: 4px;
+}
+
+/* Dialogue Box Arrow */
+.speech-bubble {
+  position: relative;
+}
+
+.speech-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 10px 10px 0;
+  border-style: solid;
+  border-color: white transparent;
+  display: block;
+  width: 0;
+}
