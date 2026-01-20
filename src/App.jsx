@@ -5,13 +5,17 @@ import { useCharacter } from './hooks/useCharacter';
 import { useCharacterLevels } from './hooks/useCharacterLevels';
 import { useTaskPresets } from './hooks/useTaskPresets';
 import { useFont } from './hooks/useFont';
+import useHistory from './hooks/useHistory';
+import useNotifications from './hooks/useNotifications';
 import CharacterDisplay from './components/Character/CharacterDisplay';
 import TodoList from './components/TodoList/TodoList';
 import ScheduleWizard from './components/Scheduler/ScheduleWizard';
 import SocialStats from './components/Social/SocialStats';
+import HistoryView from './components/History/HistoryView';
+import NotificationSettings from './components/Settings/NotificationSettings';
 import BottomNav from './components/Common/BottomNav';
 import CelebrationModal from './components/Common/CelebrationModal';
-import { Settings, Sparkles, Type, Trophy, Lock } from 'lucide-react';
+import { Settings, Sparkles, Type, Trophy, Lock, History, Bell } from 'lucide-react';
 
 // Evolution stages based on level
 const EVOLUTION_STAGES = [
@@ -38,13 +42,15 @@ function App() {
   const [selectedCharId, setSelectedCharId] = useState(() => localStorage.getItem('self_hero_char') || 'angel');
 
   // Get level for the selected character
-  const { level, canLevelUp, blockedByOther, todayLeveledCharacter, getLevelForCharacter } = useCharacterLevels(selectedCharId, allCompleted, todos.length);
+  const { level, canLevelUp, blockedByOther, todayLeveledCharacter, getLevelForCharacter, setLevelForCharacter } = useCharacterLevels(selectedCharId, allCompleted, todos.length);
 
   // Now get character with evolved image based on level
-  const { character, setCharacterId, currentDialogue, triggerReaction, availableCharacters } = useCharacter(progress, level);
+  const { character, setCharacterId, currentDialogue, triggerReaction, availableCharacters, getCharacterForLevel } = useCharacter(progress, level);
 
   const { presets, addPreset, updatePreset } = useTaskPresets();
   const { font, setFontId, availableFonts } = useFont();
+  const { history, recordToday, recordAchievement, getMonthlyData, getWeeklyData, getStats } = useHistory();
+  const notifications = useNotifications(character?.displayName || character?.name);
 
   const [activeTab, setActiveTab] = useState('home');
   const [showSettings, setShowSettings] = useState(false);
@@ -75,6 +81,15 @@ function App() {
       setHasShownCelebration(false);
     }
   }, [allCompleted]);
+
+  // Check for notification every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const hasIncompleteTasks = todos.some(t => !t.completed);
+      notifications.checkAndNotify(hasIncompleteTasks, selectedCharId);
+    }, 60000); // 1分ごと
+    return () => clearInterval(interval);
+  }, [todos, selectedCharId, notifications]);
 
   const handleTaskComplete = (id) => {
     const task = todos.find(t => t.id === id);
@@ -146,7 +161,7 @@ function App() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                 <h3 style={{ fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Sparkles size={18} color="var(--color-accent)" />
-                  今日のミッション
+                  デイリーミッション
                 </h3>
                 <span style={{
                   fontSize: '0.85rem',
@@ -170,10 +185,22 @@ function App() {
           </div>
         );
       case 'schedule':
+        // todosをpresetsに追加（重複を避ける）
+        const todosAsPresets = todos.map(t => ({
+          id: `todo_${t.id}`,
+          name: `📋 ${t.text}`,
+          duration: 30, // デフォルト30分
+          color: '#FF6B6B',
+          fromMission: true
+        }));
+        const combinedPresets = [
+          ...todosAsPresets,
+          ...presets.filter(p => !todosAsPresets.some(tp => tp.name.replace('📋 ', '') === p.name))
+        ];
         return (
           <div className="animate-pop" style={{ paddingTop: '1rem' }}>
             <h2 style={{ marginBottom: '1rem', fontSize: '1.3rem', color: 'var(--color-secondary)' }}>📅 スケジュール</h2>
-            <ScheduleWizard presets={presets} onAddPreset={addPreset} onUpdatePreset={updatePreset} />
+            <ScheduleWizard presets={combinedPresets} onAddPreset={addPreset} onUpdatePreset={updatePreset} level={level} />
           </div>
         );
       case 'social':
@@ -194,6 +221,18 @@ function App() {
                 ))}
               </div>
             </div>
+          </div>
+        );
+      case 'history':
+        return (
+          <div className="animate-pop" style={{ paddingTop: '1rem' }}>
+            <h2 style={{ marginBottom: '1rem', fontSize: '1.3rem', color: 'var(--color-secondary)' }}>📊 履歴</h2>
+            <HistoryView
+              history={history}
+              getMonthlyData={getMonthlyData}
+              getWeeklyData={getWeeklyData}
+              getStats={getStats}
+            />
           </div>
         );
       default:
@@ -266,13 +305,11 @@ function App() {
                 return (
                   <div
                     key={char.id}
-                    onClick={() => { setCharacterId(char.id); setSelectedCharId(char.id); }}
                     style={{
                       padding: '8px',
                       background: isSelected ? char.color : 'rgba(255,255,255,0.1)',
                       color: 'white',
                       borderRadius: '8px',
-                      cursor: 'pointer',
                       textAlign: 'center',
                       fontSize: '0.65rem',
                       border: isSelected ? '2px solid white' : '2px solid transparent',
@@ -284,13 +321,48 @@ function App() {
                     {isBlockedToday && (
                       <Lock size={12} style={{ position: 'absolute', top: '4px', right: '4px' }} color="#ff6b6b" />
                     )}
-                    {char.image ? (
-                      <img src={char.image} alt={char.name} style={{ width: '40px', height: '40px', objectFit: 'contain' }} />
-                    ) : (
-                      <div style={{ fontSize: '2rem' }}>{char.emoji}</div>
-                    )}
-                    <div style={{ marginTop: '4px', fontWeight: 'bold' }}>{char.name}</div>
-                    <div style={{ color: '#FFD700', fontSize: '0.7rem' }}>Lv.{charLevel}</div>
+                    <div
+                      onClick={() => { setCharacterId(char.id); setSelectedCharId(char.id); }}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      {(() => {
+                        const evolvedChar = getCharacterForLevel(char.id, charLevel);
+                        return (
+                          <>
+                            {evolvedChar.image ? (
+                              <img src={evolvedChar.image} alt={evolvedChar.displayName} style={{ width: '40px', height: '40px', objectFit: 'contain' }} />
+                            ) : (
+                              <div style={{ fontSize: '2rem' }}>{char.emoji}</div>
+                            )}
+                            <div style={{ marginTop: '4px', fontWeight: 'bold', fontSize: '0.6rem' }}>{evolvedChar.displayName}</div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                    {/* Level adjustment controls */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', marginTop: '4px' }}>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setLevelForCharacter(char.id, charLevel - 1); }}
+                        style={{
+                          width: '20px', height: '20px',
+                          background: 'rgba(255,100,100,0.5)',
+                          border: 'none', borderRadius: '4px',
+                          color: 'white', cursor: 'pointer', fontSize: '0.8rem',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center'
+                        }}
+                      >−</button>
+                      <span style={{ color: '#FFD700', fontSize: '0.7rem', fontWeight: 'bold', minWidth: '28px' }}>Lv.{charLevel}</span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setLevelForCharacter(char.id, charLevel + 1); }}
+                        style={{
+                          width: '20px', height: '20px',
+                          background: 'rgba(100,255,100,0.5)',
+                          border: 'none', borderRadius: '4px',
+                          color: 'white', cursor: 'pointer', fontSize: '0.8rem',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center'
+                        }}
+                      >+</button>
+                    </div>
                   </div>
                 );
               })}

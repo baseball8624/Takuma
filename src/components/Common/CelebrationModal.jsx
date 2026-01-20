@@ -1,70 +1,48 @@
 import React, { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { Star, Sparkles, Trophy, ArrowUp } from 'lucide-react';
-
-// CSS for celebration animations
-const celebrationStyles = `
-  @keyframes character-celebrate {
-    0%, 100% { transform: translateY(0) rotate(0deg); }
-    25% { transform: translateY(-20px) rotate(-5deg); }
-    50% { transform: translateY(-10px) rotate(5deg); }
-    75% { transform: translateY(-25px) rotate(-3deg); }
-  }
-  
-  @keyframes level-up-glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(255,215,0,0.5); }
-    50% { box-shadow: 0 0 60px rgba(255,215,0,0.9), 0 0 100px rgba(255,100,0,0.5); }
-  }
-  
-  @keyframes fade-in-up {
-    from { opacity: 0; transform: translateY(30px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  
-  @keyframes pulse-scale {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-  }
-  
-  .celebrate-character {
-    animation: character-celebrate 0.8s ease-in-out infinite;
-  }
-  
-  .level-up-badge {
-    animation: level-up-glow 1s ease-in-out infinite, pulse-scale 2s ease-in-out infinite;
-  }
-  
-  .fade-in-up {
-    animation: fade-in-up 0.5s ease-out forwards;
-  }
-`;
+import { Star, Sparkles, Trophy, ArrowUp, X } from 'lucide-react';
 
 export default function CelebrationModal({ isOpen, onClose, character, level, isLevelUp }) {
-    const [showConfetti, setShowConfetti] = useState(false);
+    const [showContent, setShowContent] = useState(false);
+    const [showLevel, setShowLevel] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
-            setShowConfetti(true);
+            // Stagger animations
+            setTimeout(() => setShowContent(true), 100);
+            setTimeout(() => setShowLevel(true), 500);
 
-            // Fire confetti multiple times
+            // Enhanced confetti
             const fireConfetti = () => {
+                // Left side
                 confetti({
-                    particleCount: 80,
-                    spread: 100,
-                    origin: { y: 0.6, x: 0.5 },
-                    colors: [character.color, '#FFD700', '#FF6B6B', '#4ECDC4']
+                    particleCount: 50,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0, y: 0.6 },
+                    colors: [character.color, '#FFD700', '#FF6B6B', '#4ECDC4', '#ffffff']
+                });
+                // Right side
+                confetti({
+                    particleCount: 50,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1, y: 0.6 },
+                    colors: [character.color, '#FFD700', '#FF6B6B', '#4ECDC4', '#ffffff']
                 });
             };
 
             fireConfetti();
-            const interval = setInterval(fireConfetti, 800);
+            const interval = setInterval(fireConfetti, 600);
 
             setTimeout(() => {
                 clearInterval(interval);
-                setShowConfetti(false);
-            }, 3000);
+            }, 2500);
 
             return () => clearInterval(interval);
+        } else {
+            setShowContent(false);
+            setShowLevel(false);
         }
     }, [isOpen, character]);
 
@@ -72,137 +50,184 @@ export default function CelebrationModal({ isOpen, onClose, character, level, is
 
     const hasImage = character.image && !character.emoji;
 
-    // Get praise dialogue for completion
     const getPraise = () => {
         const praises = character.dialogues?.praise || ['すごい！'];
         return praises[Math.floor(Math.random() * praises.length)];
     };
 
     return (
-        <>
-            <style>{celebrationStyles}</style>
-            <div
+        <div
+            onClick={onClose}
+            style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'radial-gradient(circle at center, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.95) 100%)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 1000,
+                padding: '20px',
+                cursor: 'pointer',
+                backdropFilter: 'blur(10px)'
+            }}
+        >
+            {/* Close hint */}
+            <button
                 onClick={onClose}
                 style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: 'rgba(0,0,0,0.85)',
+                    position: 'absolute',
+                    top: '20px',
+                    right: '20px',
+                    background: 'rgba(255,255,255,0.1)',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '40px',
+                    height: '40px',
                     display: 'flex',
-                    flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    zIndex: 1000,
-                    padding: '20px',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    transition: 'all var(--transition-fast)'
                 }}
             >
-                {/* Level Up Badge */}
-                {isLevelUp && (
-                    <div
-                        className="level-up-badge fade-in-up"
-                        style={{
-                            background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-                            color: '#000',
-                            padding: '12px 24px',
-                            borderRadius: '30px',
-                            fontSize: '1.2rem',
-                            fontWeight: 'bold',
-                            marginBottom: '20px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            border: '3px solid white'
-                        }}
-                    >
-                        <ArrowUp size={24} />
-                        LEVEL UP!
-                        <ArrowUp size={24} />
-                    </div>
-                )}
+                <X size={20} color="white" />
+            </button>
 
-                {/* Character */}
-                <div className="celebrate-character" style={{ marginBottom: '20px' }}>
+            {/* Level Up Badge */}
+            {isLevelUp && showContent && (
+                <div
+                    style={{
+                        background: 'linear-gradient(135deg, #FFD700, #FFA500, #FF6B35)',
+                        color: '#000',
+                        padding: '14px 28px',
+                        borderRadius: 'var(--radius-full)',
+                        fontSize: '1.3rem',
+                        fontWeight: 'bold',
+                        marginBottom: '24px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        boxShadow: '0 0 40px rgba(255,215,0,0.5), 0 4px 20px rgba(0,0,0,0.3)',
+                        animation: 'fadeInUp 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                        border: '2px solid rgba(255,255,255,0.3)'
+                    }}
+                >
+                    <ArrowUp size={24} strokeWidth={3} />
+                    LEVEL UP!
+                    <ArrowUp size={24} strokeWidth={3} />
+                </div>
+            )}
+
+            {/* Character */}
+            {showContent && (
+                <div
+                    style={{
+                        marginBottom: '24px',
+                        animation: 'float 2s ease-in-out infinite'
+                    }}
+                >
                     {hasImage ? (
                         <img
                             src={character.image}
                             alt={character.name}
                             style={{
-                                width: '200px',
-                                height: '200px',
+                                width: '180px',
+                                height: '180px',
                                 objectFit: 'contain',
-                                filter: `drop-shadow(0 0 30px ${character.color})`
+                                filter: `drop-shadow(0 0 40px ${character.color})`,
+                                animation: 'fadeInUp 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.1s both'
                             }}
                         />
                     ) : (
                         <div style={{
-                            fontSize: '8rem',
-                            filter: `drop-shadow(0 0 30px ${character.color})`
+                            fontSize: '7rem',
+                            filter: `drop-shadow(0 0 40px ${character.color})`,
+                            animation: 'fadeInUp 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.1s both'
                         }}>
                             {character.emoji}
                         </div>
                     )}
                 </div>
+            )}
 
-                {/* Speech Bubble */}
+            {/* Speech Bubble */}
+            {showContent && (
                 <div
-                    className="fade-in-up"
                     style={{
-                        background: 'var(--color-bg-card)',
-                        padding: '20px 30px',
-                        borderRadius: '12px',
-                        border: `4px solid ${character.color}`,
+                        background: 'linear-gradient(145deg, var(--color-bg-card), rgba(22, 33, 62, 0.9))',
+                        padding: '20px 32px',
+                        borderRadius: 'var(--radius-lg)',
+                        border: `3px solid ${character.color}`,
                         maxWidth: '90%',
                         textAlign: 'center',
-                        marginBottom: '20px',
-                        animationDelay: '0.2s'
+                        marginBottom: '24px',
+                        boxShadow: `0 0 30px ${character.color}40, 0 8px 32px rgba(0,0,0,0.4)`,
+                        animation: 'fadeInUp 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.2s both'
                     }}
                 >
-                    <p style={{ fontSize: '1.3rem', fontWeight: 'bold', margin: 0, color: 'white' }}>
+                    <p style={{
+                        fontSize: '1.25rem',
+                        fontWeight: 'bold',
+                        margin: 0,
+                        color: 'white',
+                        lineHeight: 1.5
+                    }}>
                         「{getPraise()}」
                     </p>
                 </div>
+            )}
 
-                {/* Level Display */}
+            {/* Level Display */}
+            {showLevel && (
                 <div
-                    className="fade-in-up"
                     style={{
                         display: 'flex',
                         alignItems: 'center',
                         gap: '15px',
-                        animationDelay: '0.4s'
+                        animation: 'fadeInUp 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
                     }}
                 >
                     <div style={{
-                        background: 'linear-gradient(135deg, #667eea, #764ba2)',
-                        padding: '15px 30px',
-                        borderRadius: '12px',
-                        border: '2px solid white',
-                        textAlign: 'center'
+                        background: 'linear-gradient(145deg, rgba(102, 126, 234, 0.9), rgba(118, 75, 162, 0.9))',
+                        padding: '20px 40px',
+                        borderRadius: 'var(--radius-lg)',
+                        border: '2px solid rgba(255,255,255,0.2)',
+                        textAlign: 'center',
+                        boxShadow: '0 0 40px rgba(102, 126, 234, 0.3), 0 8px 32px rgba(0,0,0,0.3)'
                     }}>
-                        <div style={{ fontSize: '0.8rem', color: '#ccc', marginBottom: '4px' }}>現在のレベル</div>
-                        <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#FFD700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                            <Trophy size={28} />
+                        <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)', marginBottom: '6px' }}>
+                            現在のレベル
+                        </div>
+                        <div style={{
+                            fontSize: '3rem',
+                            fontWeight: 'bold',
+                            color: '#FFD700',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '10px',
+                            textShadow: '0 0 20px rgba(255,215,0,0.5)'
+                        }}>
+                            <Trophy size={32} />
                             Lv.{level}
                         </div>
                     </div>
                 </div>
+            )}
 
-                {/* Tap to close hint */}
-                <p
-                    className="fade-in-up"
-                    style={{
-                        marginTop: '30px',
-                        color: '#888',
-                        fontSize: '0.8rem',
-                        animationDelay: '0.6s'
-                    }}
-                >
-                    タップして閉じる
-                </p>
-            </div>
-        </>
+            {/* Tap hint */}
+            <p style={{
+                marginTop: '32px',
+                color: 'rgba(255,255,255,0.4)',
+                fontSize: '0.8rem',
+                animation: 'fadeIn 0.5s ease 0.8s both'
+            }}>
+                タップして閉じる
+            </p>
+        </div>
     );
 }

@@ -1,119 +1,207 @@
 import React, { useState } from 'react';
-import { Plus, Check, Trash2 } from 'lucide-react';
+import { Plus, Check, Trash2, Sparkles } from 'lucide-react';
 
 export default function TodoList({ todos, onAdd, onToggle, onDelete, progress }) {
     const [input, setInput] = useState('');
+    const [isAdding, setIsAdding] = useState(false);
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (!input.trim()) return;
-        onAdd(input);
-        setInput('');
+        if (input.trim()) {
+            onAdd(input);
+            setInput('');
+            setIsAdding(true);
+            setTimeout(() => setIsAdding(false), 300);
+        }
     };
 
     return (
-        <div className="todo-section">
-            <div className="progress-bar-container" style={{
-                height: '8px',
-                background: '#E0E0E0',
-                borderRadius: '99px',
-                margin: '1rem 0',
-                overflow: 'hidden'
-            }}>
+        <div style={{ position: 'relative' }}>
+            {/* Progress Bar */}
+            <div className="progress-bar" style={{ marginBottom: '1.25rem' }}>
                 <div
-                    className="progress-fill"
+                    className="progress-bar-fill"
                     style={{
                         width: `${progress}%`,
-                        background: 'var(--color-primary)',
-                        height: '100%',
-                        transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+                        background: progress === 100
+                            ? 'linear-gradient(90deg, #2ed573, #17c0eb)'
+                            : 'linear-gradient(90deg, var(--color-primary), var(--color-secondary))'
                     }}
                 />
             </div>
 
-            <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '8px', marginBottom: '1.5rem' }}>
-                <input
-                    type="text"
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder="新しいタスク..."
-                    style={{
-                        flex: 1,
-                        padding: '12px 16px',
-                        borderRadius: '12px',
-                        border: '2px solid transparent',
-                        background: 'white',
-                        boxShadow: 'var(--shadow-sm)',
-                        fontSize: '1rem',
-                        outline: 'none',
-                    }}
-                    onFocus={(e) => e.target.style.borderColor = 'var(--color-primary)'}
-                    onBlur={(e) => e.target.style.borderColor = 'transparent'}
-                />
-                <button
-                    type="submit"
-                    className="btn btn-primary"
-                    style={{ padding: '0 16px', borderRadius: '12px' }}
-                >
-                    <Plus />
-                </button>
-            </form>
-
-            <div className="list-container" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {todos.map((todo) => (
-                    <div
-                        key={todo.id}
-                        className="todo-item card"
+            {/* Add Task Form */}
+            <form onSubmit={handleSubmit} style={{ marginBottom: '1rem' }}>
+                <div style={{
+                    display: 'flex',
+                    gap: '10px',
+                    background: 'rgba(0, 0, 0, 0.2)',
+                    padding: '8px',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--color-border)',
+                    transition: 'all var(--transition-fast)'
+                }}>
+                    <input
+                        type="text"
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        placeholder="新しいタスクを追加..."
                         style={{
+                            flex: 1,
+                            background: 'transparent',
+                            border: 'none',
+                            color: 'var(--color-text-main)',
+                            fontSize: '0.95rem',
+                            padding: '8px 12px',
+                            outline: 'none'
+                        }}
+                    />
+                    <button
+                        type="submit"
+                        disabled={!input.trim()}
+                        style={{
+                            background: input.trim()
+                                ? 'linear-gradient(135deg, var(--color-primary), #d4145a)'
+                                : 'rgba(255, 255, 255, 0.1)',
+                            border: 'none',
+                            borderRadius: 'var(--radius-sm)',
+                            padding: '10px 16px',
+                            cursor: input.trim() ? 'pointer' : 'not-allowed',
                             display: 'flex',
                             alignItems: 'center',
-                            padding: '16px',
-                            margin: 0,
-                            gap: '12px',
-                            opacity: todo.completed ? 0.6 : 1,
-                            transition: 'all 0.2s'
+                            gap: '6px',
+                            color: 'white',
+                            fontFamily: 'inherit',
+                            fontSize: '0.85rem',
+                            transition: 'all var(--transition-fast)',
+                            opacity: input.trim() ? 1 : 0.5
                         }}
                     >
+                        <Plus size={18} />
+                    </button>
+                </div>
+            </form>
+
+            {/* Task List */}
+            <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                maxHeight: '350px',
+                overflowY: 'auto',
+                paddingRight: '4px'
+            }}>
+                {todos.length === 0 ? (
+                    <div style={{
+                        textAlign: 'center',
+                        padding: '2rem',
+                        color: 'var(--color-text-muted)',
+                        fontSize: '0.9rem'
+                    }}>
+                        <Sparkles size={32} style={{ marginBottom: '8px', opacity: 0.5 }} />
+                        <p>タスクを追加して冒険を始めよう！</p>
+                    </div>
+                ) : (
+                    todos.map((todo, index) => (
                         <div
-                            onClick={() => onToggle(todo.id)}
+                            key={todo.id}
+                            className={`stagger-item ${isAdding && index === todos.length - 1 ? 'animate-bounce' : ''}`}
                             style={{
-                                width: '24px',
-                                height: '24px',
-                                borderRadius: '50%',
-                                border: `2px solid ${todo.completed ? 'var(--color-success)' : '#ddd'}`,
-                                background: todo.completed ? 'var(--color-success)' : 'transparent',
                                 display: 'flex',
                                 alignItems: 'center',
-                                justifyContent: 'center',
-                                cursor: 'pointer',
-                                color: 'white'
+                                gap: '12px',
+                                padding: '14px 16px',
+                                background: todo.completed
+                                    ? 'linear-gradient(135deg, rgba(46, 213, 115, 0.15), rgba(23, 192, 235, 0.1))'
+                                    : 'rgba(255, 255, 255, 0.03)',
+                                borderRadius: 'var(--radius-md)',
+                                border: `1px solid ${todo.completed ? 'rgba(46, 213, 115, 0.3)' : 'var(--color-border)'}`,
+                                transition: 'all var(--transition-normal)',
+                                transform: todo.completed ? 'scale(0.98)' : 'scale(1)',
+                                cursor: 'pointer'
                             }}
+                            onClick={() => onToggle(todo.id)}
                         >
-                            {todo.completed && <Check size={16} />}
+                            {/* Checkbox */}
+                            <div
+                                className={`task-checkbox ${todo.completed ? 'checked' : ''}`}
+                                style={{
+                                    background: todo.completed
+                                        ? 'linear-gradient(135deg, #2ed573, #17c0eb)'
+                                        : 'transparent',
+                                    border: todo.completed ? 'none' : '2px solid rgba(255, 255, 255, 0.3)',
+                                }}
+                            >
+                                {todo.completed && <Check size={14} color="white" strokeWidth={3} />}
+                            </div>
+
+                            {/* Task Text */}
+                            <span style={{
+                                flex: 1,
+                                fontSize: '0.95rem',
+                                color: todo.completed ? 'var(--color-text-sub)' : 'var(--color-text-main)',
+                                textDecoration: todo.completed ? 'line-through' : 'none',
+                                transition: 'all var(--transition-fast)',
+                                opacity: todo.completed ? 0.7 : 1
+                            }}>
+                                {todo.text}
+                            </span>
+
+                            {/* Delete Button */}
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onDelete(todo.id);
+                                }}
+                                style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    padding: '6px',
+                                    borderRadius: 'var(--radius-sm)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    opacity: 0.4,
+                                    transition: 'all var(--transition-fast)'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.opacity = '1';
+                                    e.currentTarget.style.background = 'rgba(255, 71, 87, 0.2)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.opacity = '0.4';
+                                    e.currentTarget.style.background = 'transparent';
+                                }}
+                            >
+                                <Trash2 size={16} color="#ff4757" />
+                            </button>
                         </div>
-
-                        <span style={{
-                            flex: 1,
-                            textDecoration: todo.completed ? 'line-through' : 'none'
-                        }}>
-                            {todo.text}
-                        </span>
-
-                        <button
-                            onClick={() => onDelete(todo.id)}
-                            style={{ background: 'none', border: 'none', color: '#ccc', cursor: 'pointer' }}
-                        >
-                            <Trash2 size={18} />
-                        </button>
-                    </div>
-                ))}
-
-                {todos.length === 0 && (
-                    <p style={{ textAlign: 'center', color: '#999', margin: '2rem 0' }}>
-                        タスクはまだありません。<br />今日やることを追加しましょう！
-                    </p>
+                    ))
                 )}
             </div>
+
+            {/* Completed Count */}
+            {todos.length > 0 && (
+                <div style={{
+                    marginTop: '1rem',
+                    paddingTop: '1rem',
+                    borderTop: '1px solid var(--color-border)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontSize: '0.8rem',
+                    color: 'var(--color-text-sub)'
+                }}>
+                    <span>{todos.filter(t => t.completed).length} / {todos.length} 完了</span>
+                    {progress === 100 && (
+                        <span className="badge badge-success" style={{ animation: 'pulse 2s infinite' }}>
+                            <Sparkles size={12} />
+                            オールクリア！
+                        </span>
+                    )}
+                </div>
+            )}
         </div>
     );
 }

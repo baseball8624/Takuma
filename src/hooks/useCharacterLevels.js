@@ -3,11 +3,16 @@ import { useState, useEffect } from 'react';
 const LEVELS_KEY = 'self_hero_character_levels';
 const DAILY_KEY = 'self_hero_daily_levelup';
 
+// テスト用: イグニスをレベル35に設定（進化形態確認用）
+const TEST_LEVELS = { dragon: 35 };
+
 export function useCharacterLevels(characterId, allCompleted, todosCount) {
     // Load all character levels
     const [levels, setLevels] = useState(() => {
-        const saved = localStorage.getItem(LEVELS_KEY);
-        return saved ? JSON.parse(saved) : {};
+        // テスト用: 強制的にイグニスをレベル35に設定
+        const testLevels = { dragon: 35 };
+        localStorage.setItem(LEVELS_KEY, JSON.stringify(testLevels));
+        return testLevels;
     });
 
     // Track which character leveled up today
@@ -62,12 +67,21 @@ export function useCharacterLevels(characterId, allCompleted, todosCount) {
     // Get level for any character
     const getLevelForCharacter = (charId) => levels[charId] || 0;
 
+    // Set level for any character (for dev/testing)
+    const setLevelForCharacter = (charId, newLevel) => {
+        const clampedLevel = Math.max(0, newLevel); // 上限なし
+        const newLevels = { ...levels, [charId]: clampedLevel };
+        setLevels(newLevels);
+        localStorage.setItem(LEVELS_KEY, JSON.stringify(newLevels));
+    };
+
     return {
         level: currentLevel,
         canLevelUp,
         blockedByOther,
         todayLeveledCharacter: dailyLevelUp.characterId,
         getLevelForCharacter,
+        setLevelForCharacter,
         allLevels: levels
     };
 }

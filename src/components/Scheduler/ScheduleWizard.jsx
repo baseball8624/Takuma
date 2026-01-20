@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Clock, RefreshCcw, Plus, Trash2, Edit3, PieChart, Palette } from 'lucide-react';
+import { useCharacter } from '../../hooks/useCharacter';
 
 // Color palette for tasks (user can pick from these)
 const AVAILABLE_COLORS = [
@@ -15,15 +16,90 @@ const AVAILABLE_COLORS = [
     { id: 'sky', color: '#87CEEB', name: '空色' },
 ];
 
-const SCHEDULE_TEMPLATES = [
-    { id: 'balance', name: 'バランス型', desc: '攻守最強の安定スタイル', breakRatio: 0.15 },
-    { id: 'spartan', name: 'スパルタ型', desc: '経験値効率重視の修羅の道', breakRatio: 0.05 },
-    { id: 'chill', name: 'ゆとり型', desc: 'HP管理優先の安全策', breakRatio: 0.25 },
+// よくある1日のルーティン項目
+const DAILY_ROUTINES = [
+    // 生活基本
+    { id: 'sleep', name: '睡眠', duration: 420, color: '#2C3E50', type: 'routine' },
+    { id: 'morning_prep', name: '朝の準備', duration: 30, color: '#95A5A6', type: 'routine' },
+    { id: 'breakfast', name: '朝食', duration: 30, color: '#FFB347', type: 'routine' },
+    { id: 'lunch', name: '昼食', duration: 60, color: '#FFB347', type: 'routine' },
+    { id: 'dinner', name: '夕食', duration: 60, color: '#FFB347', type: 'routine' },
+    { id: 'bath', name: '入浴', duration: 30, color: '#4ECDC4', type: 'routine' },
+
+    // 移動
+    { id: 'commute_am', name: '通勤・通学', duration: 60, color: '#87CEEB', type: 'routine' },
+    { id: 'commute_pm', name: '帰宅', duration: 60, color: '#87CEEB', type: 'routine' },
+
+    // 仕事・学業
+    { id: 'work', name: '仕事', duration: 480, color: '#3498DB', type: 'routine' },
+    { id: 'school', name: '授業・学校', duration: 360, color: '#9B59B6', type: 'routine' },
+
+    // 家事
+    { id: 'housework', name: '家事', duration: 60, color: '#E74C3C', type: 'routine' },
+    { id: 'cooking', name: '料理', duration: 60, color: '#F39C12', type: 'routine' },
+
+    // リラックス
+    { id: 'relax', name: 'リラックスタイム', duration: 60, color: '#AA96DA', type: 'routine' },
+    { id: 'tv_youtube', name: 'TV・YouTube', duration: 60, color: '#E91E63', type: 'routine' },
+    { id: 'game', name: 'ゲーム', duration: 60, color: '#8E44AD', type: 'routine' },
+    { id: 'sns', name: 'SNS', duration: 30, color: '#1DA1F2', type: 'routine' },
 ];
 
-// Round to nearest 30 minutes
-const roundTo30Min = (minutes) => {
-    return Math.round(minutes / 30) * 30;
+const SCHEDULE_TEMPLATES = [
+    // 働き方スタイル
+    { id: 'office_worker', name: '会社員型', desc: '9-18時勤務の王道スタイル', icon: '💼', category: '働き方', wake: '07:00', bed: '23:00' },
+    { id: 'remote_worker', name: 'リモート型', desc: '在宅勤務でフレキシブルに', icon: '🏠', category: '働き方', wake: '08:00', bed: '00:00' },
+    { id: 'freelance', name: 'フリーランス型', desc: '自由な時間配分で効率UP', icon: '✨', category: '働き方', wake: '09:00', bed: '01:00' },
+    { id: 'student', name: '学生型', desc: '授業と勉強の両立スタイル', icon: '📚', category: '働き方', wake: '07:30', bed: '00:00' },
+    { id: 'part_time', name: 'アルバイト型', desc: 'シフト勤務に合わせて', icon: '🎯', category: '働き方', wake: '08:00', bed: '23:30' },
+
+    // 生活リズム
+    { id: 'early_bird', name: '朝型', desc: '5時起きで朝活を制する者', icon: '🌅', category: '生活リズム', wake: '05:00', bed: '22:00' },
+    { id: 'night_owl', name: '夜型', desc: '夜に集中力が高まるタイプ', icon: '🌙', category: '生活リズム', wake: '10:00', bed: '02:00' },
+    { id: 'balance', name: 'バランス型', desc: '攻守最強の安定スタイル', icon: '⚖️', category: '生活リズム', wake: '07:00', bed: '23:00' },
+
+    // 目標重視
+    { id: 'spartan', name: 'スパルタ型', desc: '経験値効率重視の修羅の道', icon: '🔥', category: '目標重視', wake: '05:30', bed: '23:00' },
+    { id: 'chill', name: 'ゆとり型', desc: 'HP管理優先の安全策', icon: '🍃', category: '目標重視', wake: '08:00', bed: '22:00' },
+    { id: 'productivity', name: '生産性特化型', desc: '集中時間を最大化', icon: '⚡', category: '目標重視', wake: '06:00', bed: '22:00' },
+    { id: 'health', name: '健康重視型', desc: '運動と睡眠をしっかり確保', icon: '💪', category: '目標重視', wake: '06:30', bed: '22:30' },
+
+    // 特殊スタイル
+    { id: 'pomodoro', name: 'ポモドーロ型', desc: '25分集中+5分休憩の繰り返し', icon: '🍅', category: '特殊', wake: '07:00', bed: '23:00' },
+    { id: 'deep_work', name: 'ディープワーク型', desc: '長時間の深い集中を確保', icon: '🧠', category: '特殊', wake: '06:00', bed: '22:00' },
+    { id: 'creative', name: 'クリエイティブ型', desc: '創作活動に最適化', icon: '🎨', category: '特殊', wake: '09:00', bed: '01:00' },
+
+    // 有名人スタイル
+    {
+        id: 'tanaka_kei',
+        name: '田中渓さん型',
+        desc: '3:45起床！朝トレ+ビジネスの超人スタイル',
+        icon: '🏃',
+        category: '有名人',
+        wake: '03:45',
+        bed: '21:00',
+        defaultSchedule: [
+            { time: '03:45', duration: 15, title: '起床', color: '#4CAF50' },
+            { time: '04:00', duration: 120, title: 'ラン/バイク/スイム', color: '#FF5722' },
+            { time: '06:00', duration: 30, title: 'コアトレ・その他トレーニング', color: '#FF9800' },
+            { time: '06:30', duration: 50, title: '読書', color: '#9C27B0' },
+            { time: '07:20', duration: 55, title: '家事等', color: '#607D8B' },
+            { time: '08:15', duration: 30, title: '移動+語学学習+出社', color: '#00BCD4' },
+            { time: '08:45', duration: 75, title: 'メール返信・To do指示・資料レビュー', color: '#3F51B5' },
+            { time: '10:00', duration: 90, title: '社内外・打ち合わせ', color: '#E91E63' },
+            { time: '11:30', duration: 120, title: '昼食+インプット（ニュース・AI壁打ち）', color: '#8BC34A' },
+            { time: '13:30', duration: 150, title: '外部MTG', color: '#673AB7' },
+            { time: '16:00', duration: 90, title: 'メール返信・To do指示・資料レビュー', color: '#2196F3' },
+            { time: '17:30', duration: 30, title: '移動+電話会議', color: '#009688' },
+            { time: '18:00', duration: 150, title: '会食または家族と食事', color: '#FFC107' },
+            { time: '20:30', duration: 30, title: '就寝準備', color: '#795548' },
+        ]
+    },
+];
+
+// Round to nearest 15 minutes
+const roundTo15Min = (minutes) => {
+    return Math.round(minutes / 15) * 15;
 };
 
 const formatTime = (totalMinutes) => {
@@ -32,10 +108,12 @@ const formatTime = (totalMinutes) => {
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 };
 
-export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePreset }) {
+export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePreset, level = 1 }) {
+    const { character, triggerReaction, currentDialogue } = useCharacter(0, level);
     const [wakeTime, setWakeTime] = useState('07:00');
     const [bedTime, setBedTime] = useState('23:00');
     const [selectedTemplate, setSelectedTemplate] = useState(null);
+    const [chosenTemplateId, setChosenTemplateId] = useState(null); // ユーザー選択
     const [schedule, setSchedule] = useState([]);
     const [selectedTasks, setSelectedTasks] = useState([]);
     const [isEditing, setIsEditing] = useState(false);
@@ -49,7 +127,7 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
         if (selectedTasks.find(t => t.id === preset.id)) {
             setSelectedTasks(selectedTasks.filter(t => t.id !== preset.id));
         } else {
-            const roundedDuration = roundTo30Min(preset.duration) || 30;
+            const roundedDuration = roundTo15Min(preset.duration) || 15;
             setSelectedTasks([...selectedTasks, { ...preset, duration: roundedDuration }]);
         }
     };
@@ -60,7 +138,10 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
             return;
         }
 
-        const template = SCHEDULE_TEMPLATES[Math.floor(Math.random() * SCHEDULE_TEMPLATES.length)];
+        // ユーザーが選択したテンプレート、なければランダム
+        const template = chosenTemplateId
+            ? SCHEDULE_TEMPLATES.find(t => t.id === chosenTemplateId)
+            : SCHEDULE_TEMPLATES[Math.floor(Math.random() * SCHEDULE_TEMPLATES.length)];
         setSelectedTemplate(template);
 
         const [wakeH, wakeM] = wakeTime.split(':').map(Number);
@@ -68,80 +149,231 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
 
         const wakeMinutes = wakeH * 60 + wakeM;
         const bedMinutes = bedH * 60 + bedM;
-        const totalMinutes = ((bedMinutes - wakeMinutes) + 1440) % 1440;
-        const taskTotalMinutes = selectedTasks.reduce((sum, t) => sum + t.duration, 0);
-        const freeMinutes = totalMinutes - taskTotalMinutes - 60;
 
-        let currentMinutes = roundTo30Min(wakeMinutes);
+        let currentMinutes = roundTo15Min(wakeMinutes);
         const items = [];
 
+        // 起床・準備
         items.push({
+            id: 'wake',
             time: formatTime(currentMinutes),
             title: '起床・準備',
             duration: 30,
-            editable: false,
+            editable: true,
             color: '#888',
-            type: 'system'
+            type: 'routine'
         });
         currentMinutes += 30;
 
-        const breakDuration = roundTo30Min(Math.max(30, (freeMinutes * template.breakRatio) / (selectedTasks.length + 1)));
-        const fillerDuration = roundTo30Min(Math.max(30, (freeMinutes * (1 - template.breakRatio)) / (selectedTasks.length + 1)));
-
-        selectedTasks.forEach((task, idx) => {
-            if (fillerDuration >= 30) {
-                items.push({
-                    id: `free-${idx}`,
-                    time: formatTime(currentMinutes),
-                    title: idx === 0 ? '朝活タイム' : '自由時間',
-                    duration: fillerDuration,
-                    editable: true,
-                    color: '#555',
-                    type: 'free'
-                });
-                currentMinutes += fillerDuration;
-            }
-
-            const taskDuration = roundTo30Min(task.duration) || 30;
-            items.push({
-                id: `task-${task.id}-${idx}`,
-                time: formatTime(currentMinutes),
-                title: task.name,
-                duration: taskDuration,
-                editable: true,
-                color: task.color || AVAILABLE_COLORS[idx % AVAILABLE_COLORS.length].color,
-                type: 'task'
-            });
-            currentMinutes += taskDuration;
-
-            if (breakDuration >= 30 && idx < selectedTasks.length - 1) {
-                items.push({
-                    id: `break-${idx}`,
-                    time: formatTime(currentMinutes),
-                    title: '休憩',
-                    duration: breakDuration,
-                    editable: true,
-                    color: '#4ECDC4',
-                    type: 'break'
-                });
-                currentMinutes += breakDuration;
-            }
+        // 朝食
+        items.push({
+            id: 'breakfast',
+            time: formatTime(currentMinutes),
+            title: '朝食',
+            duration: 30,
+            editable: true,
+            color: '#FFB347',
+            type: 'routine'
         });
+        currentMinutes += 30;
 
-        const remainingMinutes = roundTo30Min(bedMinutes - currentMinutes - 30);
-        if (remainingMinutes >= 30) {
-            items.push({
-                id: 'evening-free',
-                time: formatTime(currentMinutes),
-                title: '夜のリラックスタイム',
-                duration: remainingMinutes,
-                editable: true,
-                color: '#9B59B6',
-                type: 'free'
+        // テンプレートに応じた午前の構成
+        const isWorker = ['office_worker', 'remote_worker', 'part_time'].includes(template.id);
+        const isStudent = template.id === 'student';
+        const isFreelance = template.id === 'freelance';
+        const isEarlyBird = template.id === 'early_bird';
+
+        // 朝型・フリーランスは朝にタスクを入れる
+        if (isEarlyBird || isFreelance) {
+            const morningTasks = selectedTasks.slice(0, Math.ceil(selectedTasks.length / 2));
+            morningTasks.forEach((task, idx) => {
+                const taskDuration = roundTo15Min(task.duration) || 15;
+                items.push({
+                    id: `task-${task.id}-am-${idx}`,
+                    time: formatTime(currentMinutes),
+                    title: task.name,
+                    duration: taskDuration,
+                    editable: true,
+                    color: task.color || AVAILABLE_COLORS[idx % AVAILABLE_COLORS.length].color,
+                    type: 'task'
+                });
+                currentMinutes += taskDuration;
+
+                // 休憩を挟む
+                if (idx < morningTasks.length - 1) {
+                    items.push({
+                        id: `break-am-${idx}`,
+                        time: formatTime(currentMinutes),
+                        title: '休憩',
+                        duration: 30,
+                        editable: true,
+                        color: '#4ECDC4',
+                        type: 'break'
+                    });
+                    currentMinutes += 30;
+                }
             });
         }
 
+        // 通勤（会社員・学生）
+        if (isWorker || isStudent) {
+            items.push({
+                id: 'commute_am',
+                time: formatTime(currentMinutes),
+                title: isStudent ? '通学' : '通勤',
+                duration: 60,
+                editable: true,
+                color: '#87CEEB',
+                type: 'routine'
+            });
+            currentMinutes += 60;
+
+            // 午前の仕事/授業
+            items.push({
+                id: 'work_am',
+                time: formatTime(currentMinutes),
+                title: isStudent ? '午前の授業' : '午前の仕事',
+                duration: 180,
+                editable: true,
+                color: '#95E1D3',
+                type: 'routine'
+            });
+            currentMinutes += 180;
+        }
+
+        // 昼食（12時頃を目安に調整）
+        if (currentMinutes < 12 * 60) {
+            currentMinutes = 12 * 60;
+        }
         items.push({
+            id: 'lunch',
+            time: formatTime(currentMinutes),
+            title: '昼食',
+            duration: 60,
+            editable: true,
+            color: '#FFB347',
+            type: 'routine'
+        });
+        currentMinutes += 60;
+
+        // 午後
+        if (isWorker || isStudent) {
+            // 午後の仕事/授業
+            items.push({
+                id: 'work_pm',
+                time: formatTime(currentMinutes),
+                title: isStudent ? '午後の授業' : '午後の仕事',
+                duration: 240,
+                editable: true,
+                color: '#95E1D3',
+                type: 'routine'
+            });
+            currentMinutes += 240;
+
+            // 帰宅
+            items.push({
+                id: 'commute_pm',
+                time: formatTime(currentMinutes),
+                title: '帰宅',
+                duration: 60,
+                editable: true,
+                color: '#87CEEB',
+                type: 'routine'
+            });
+            currentMinutes += 60;
+        } else {
+            // フリーランス・その他は午後にタスクを配置
+            const afternoonTasks = isEarlyBird ? selectedTasks.slice(Math.ceil(selectedTasks.length / 2)) : selectedTasks;
+            afternoonTasks.forEach((task, idx) => {
+                const taskDuration = roundTo15Min(task.duration) || 15;
+                items.push({
+                    id: `task-${task.id}-pm-${idx}`,
+                    time: formatTime(currentMinutes),
+                    title: task.name,
+                    duration: taskDuration,
+                    editable: true,
+                    color: task.color || AVAILABLE_COLORS[idx % AVAILABLE_COLORS.length].color,
+                    type: 'task'
+                });
+                currentMinutes += taskDuration;
+
+                if (idx < afternoonTasks.length - 1) {
+                    items.push({
+                        id: `break-pm-${idx}`,
+                        time: formatTime(currentMinutes),
+                        title: '休憩',
+                        duration: 30,
+                        editable: true,
+                        color: '#4ECDC4',
+                        type: 'break'
+                    });
+                    currentMinutes += 30;
+                }
+            });
+        }
+
+        // 夕食（18時頃を目安）
+        if (currentMinutes < 18 * 60) {
+            currentMinutes = 18 * 60;
+        }
+        items.push({
+            id: 'dinner',
+            time: formatTime(currentMinutes),
+            title: '夕食',
+            duration: 60,
+            editable: true,
+            color: '#FFB347',
+            type: 'routine'
+        });
+        currentMinutes += 60;
+
+        // 夜のタスク（会社員・学生の場合）
+        if (isWorker || isStudent) {
+            selectedTasks.forEach((task, idx) => {
+                const taskDuration = roundTo15Min(task.duration) || 15;
+                items.push({
+                    id: `task-${task.id}-eve-${idx}`,
+                    time: formatTime(currentMinutes),
+                    title: task.name,
+                    duration: taskDuration,
+                    editable: true,
+                    color: task.color || AVAILABLE_COLORS[idx % AVAILABLE_COLORS.length].color,
+                    type: 'task'
+                });
+                currentMinutes += taskDuration;
+            });
+        }
+
+        // 入浴
+        items.push({
+            id: 'bath',
+            time: formatTime(currentMinutes),
+            title: '入浴',
+            duration: 30,
+            editable: true,
+            color: '#4ECDC4',
+            type: 'routine'
+        });
+        currentMinutes += 30;
+
+        // リラックスタイム（就寝まで）
+        const relaxTime = Math.max(30, roundTo15Min(bedMinutes - currentMinutes - 30));
+        if (relaxTime >= 30) {
+            items.push({
+                id: 'relax',
+                time: formatTime(currentMinutes),
+                title: 'リラックスタイム',
+                duration: relaxTime,
+                editable: true,
+                color: '#AA96DA',
+                type: 'routine'
+            });
+            currentMinutes += relaxTime;
+        }
+
+        // 就寝
+        items.push({
+            id: 'sleep',
             time: bedTime,
             title: '就寝',
             duration: 0,
@@ -156,7 +388,7 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
     const updateScheduleItem = (index, field, value) => {
         const newSchedule = [...schedule];
         if (field === 'duration') {
-            value = roundTo30Min(parseInt(value) || 30);
+            value = roundTo15Min(parseInt(value) || 15);
         }
         newSchedule[index] = { ...newSchedule[index], [field]: value };
         setSchedule(newSchedule);
@@ -168,7 +400,7 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
 
     const handleAddNewPreset = () => {
         if (newTaskName.trim() && onAddPreset) {
-            const roundedDuration = roundTo30Min(parseInt(newTaskDuration) || 30);
+            const roundedDuration = roundTo15Min(parseInt(newTaskDuration) || 15);
             onAddPreset(newTaskName, roundedDuration, newTaskColor);
             setNewTaskName('');
             setNewTaskDuration(30);
@@ -201,33 +433,209 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
     }, [schedule]);
 
     const renderPieChart = () => {
-        const size = 200;
+        const size = 320;
         const center = size / 2;
-        const radius = size / 2 - 10;
+        const radius = size / 2 - 30;
+        const innerRadius = radius * 0.5;
+        const total24Hours = 24 * 60; // 24時間 = 1440分
+
+        // スケジュールを時刻ベースで配置（時計式）
+        const clockData = [];
+
+        // 各スケジュール項目を実際の時刻に配置
+        const scheduleItems = schedule.filter(item => item.duration > 0).map(item => {
+            const [startH, startM] = (item.time || '00:00').split(':').map(Number);
+            const startMinutes = startH * 60 + startM;
+            const endMinutes = startMinutes + item.duration;
+            const endTime = `${String(Math.floor(endMinutes / 60) % 24).padStart(2, '0')}:${String(endMinutes % 60).padStart(2, '0')}`;
+
+            // 時刻を角度に変換（0時が上、時計回り）
+            const startAngle = (startMinutes / total24Hours) * 360;
+            const endAngle = (endMinutes / total24Hours) * 360;
+
+            return {
+                ...item,
+                startAngle,
+                endAngle,
+                timeRange: `${item.time}〜${endTime}`,
+                startMinutes,
+                endMinutes
+            };
+        });
+
+        // 時刻順にソート
+        scheduleItems.sort((a, b) => a.startMinutes - b.startMinutes);
+
+        // スケジュール項目と隙間（空き時間）を追加
+        let lastEnd = 0;
+        scheduleItems.forEach(item => {
+            // 日中の隙間があれば「空き時間」として追加
+            if (item.startMinutes > lastEnd) {
+                const gapStart = lastEnd;
+                const gapEnd = item.startMinutes;
+                const startTime = `${String(Math.floor(gapStart / 60)).padStart(2, '0')}:${String(gapStart % 60).padStart(2, '0')}`;
+                const endTime = `${String(Math.floor(gapEnd / 60)).padStart(2, '0')}:${String(gapEnd % 60).padStart(2, '0')}`;
+                clockData.push({
+                    title: '⏳ 空き時間',
+                    duration: gapEnd - gapStart,
+                    color: '#37474f', // ダークグレー
+                    startAngle: (gapStart / total24Hours) * 360,
+                    endAngle: (gapEnd / total24Hours) * 360,
+                    timeRange: `${startTime}〜${endTime}`,
+                    startMinutes: gapStart,
+                    endMinutes: gapEnd,
+                    isFreeTime: true
+                });
+            }
+            clockData.push(item);
+            lastEnd = item.endMinutes;
+        });
+
+        // 最後のスケジュール〜24時と0時〜最初のスケジュールを「睡眠」として統合
+        if (scheduleItems.length > 0) {
+            const firstStart = scheduleItems[0].startMinutes;
+            const lastEndTime = lastEnd;
+
+            // 睡眠時間 = 0時〜最初のスケジュール + 最後のスケジュール〜24時
+            const sleepBeforeMorning = firstStart; // 0時〜最初
+            const sleepAfterNight = total24Hours - lastEndTime; // 最後〜24時
+            const totalSleep = sleepBeforeMorning + sleepAfterNight;
+
+            if (totalSleep > 0) {
+                // 23:00〜07:00 のような表示
+                const sleepStartTime = `${String(Math.floor(lastEndTime / 60)).padStart(2, '0')}:${String(lastEndTime % 60).padStart(2, '0')}`;
+                const sleepEndTime = `${String(Math.floor(firstStart / 60)).padStart(2, '0')}:${String(firstStart % 60).padStart(2, '0')}`;
+
+                // 2つのパスで表示（0時を跨ぐ）
+                if (sleepAfterNight > 0) {
+                    clockData.push({
+                        title: '💤 睡眠',
+                        duration: totalSleep,
+                        color: '#1a237e',
+                        startAngle: (lastEndTime / total24Hours) * 360,
+                        endAngle: 360,
+                        timeRange: `${sleepStartTime}〜${sleepEndTime}`,
+                        startMinutes: lastEndTime,
+                        endMinutes: total24Hours,
+                        isSleep: true,
+                        // 後半部分も同じ色で描画されるようにフラグ
+                        continuesAfterMidnight: sleepBeforeMorning > 0
+                    });
+                }
+                if (sleepBeforeMorning > 0) {
+                    clockData.push({
+                        title: '💤 睡眠',
+                        duration: totalSleep,
+                        color: '#1a237e',
+                        startAngle: 0,
+                        endAngle: (firstStart / total24Hours) * 360,
+                        timeRange: `${sleepStartTime}〜${sleepEndTime}`,
+                        startMinutes: 0,
+                        endMinutes: firstStart,
+                        isSleep: true,
+                        // 凡例に重複表示しない
+                        hiddenInLegend: true
+                    });
+                }
+            }
+        }
+
+        // 時計の目盛りを描画
+        const hourMarks = [];
+        for (let h = 0; h < 24; h += 3) {
+            const angle = (h / 24) * 360 - 90;
+            const rad = angle * Math.PI / 180;
+            const x1 = center + (radius + 8) * Math.cos(rad);
+            const y1 = center + (radius + 8) * Math.sin(rad);
+            const x2 = center + (radius + 18) * Math.cos(rad);
+            const y2 = center + (radius + 18) * Math.sin(rad);
+            hourMarks.push(
+                <g key={`mark-${h}`}>
+                    <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#555" strokeWidth="2" />
+                    <text x={center + (radius + 26) * Math.cos(rad)} y={center + (radius + 26) * Math.sin(rad) + 4}
+                        textAnchor="middle" fill="#888" fontSize="0.6rem">{h}</text>
+                </g>
+            );
+        }
 
         return (
-            <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
-                <svg width={size} height={size} style={{ margin: '0 auto', display: 'block' }}>
-                    {pieData.map((slice, i) => {
-                        const startRad = (slice.startAngle - 90) * Math.PI / 180;
-                        const endRad = (slice.endAngle - 90) * Math.PI / 180;
-                        const largeArc = slice.endAngle - slice.startAngle > 180 ? 1 : 0;
-                        const x1 = center + radius * Math.cos(startRad);
-                        const y1 = center + radius * Math.sin(startRad);
-                        const x2 = center + radius * Math.cos(endRad);
-                        const y2 = center + radius * Math.sin(endRad);
-                        const path = `M ${center} ${center} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
-                        return <path key={i} d={path} fill={slice.color} stroke="var(--color-bg-card)" strokeWidth="2" />;
+            <div style={{ textAlign: 'center', marginBottom: '1.5rem', padding: '1rem', background: 'rgba(0,0,0,0.2)', borderRadius: '12px' }}>
+                <h4 style={{ margin: '0 0 12px 0', color: 'var(--color-accent)', fontSize: '0.9rem' }}>🕐 24時間時計グラフ</h4>
+                <div style={{ position: 'relative', display: 'inline-block' }}>
+                    <svg width={size} height={size} style={{ display: 'block' }}>
+                        {/* 背景の円 */}
+                        <circle cx={center} cy={center} r={radius} fill="#222" stroke="#444" strokeWidth="2" />
+
+                        {/* スケジュール項目 */}
+                        {clockData.map((slice, i) => {
+                            const startRad = (slice.startAngle - 90) * Math.PI / 180;
+                            const endRad = (slice.endAngle - 90) * Math.PI / 180;
+                            const largeArc = slice.endAngle - slice.startAngle > 180 ? 1 : 0;
+                            const x1 = center + radius * Math.cos(startRad);
+                            const y1 = center + radius * Math.sin(startRad);
+                            const x2 = center + radius * Math.cos(endRad);
+                            const y2 = center + radius * Math.sin(endRad);
+                            const ix1 = center + innerRadius * Math.cos(startRad);
+                            const iy1 = center + innerRadius * Math.sin(startRad);
+                            const ix2 = center + innerRadius * Math.cos(endRad);
+                            const iy2 = center + innerRadius * Math.sin(endRad);
+
+                            // ドーナツ型のパス
+                            const path = `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} L ${ix2} ${iy2} A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${ix1} ${iy1} Z`;
+
+                            // ラベル位置（中間角度）
+                            const midAngle = ((slice.startAngle + slice.endAngle) / 2 - 90) * Math.PI / 180;
+                            const labelRadius = (radius + innerRadius) / 2;
+                            const labelX = center + labelRadius * Math.cos(midAngle);
+                            const labelY = center + labelRadius * Math.sin(midAngle);
+
+                            // ラベル表示（30分以上の項目のみ）
+                            const showLabel = slice.duration >= 60;
+
+                            return (
+                                <g key={i}>
+                                    <path d={path} fill={slice.color} stroke="var(--color-bg-card)" strokeWidth="2" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }} />
+                                    {showLabel && (
+                                        <text x={labelX} y={labelY} textAnchor="middle" dominantBaseline="middle" fill="#fff" fontSize="0.55rem" fontWeight="bold" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
+                                            {slice.title.length > 6 ? slice.title.slice(0, 5) + '…' : slice.title}
+                                        </text>
+                                    )}
+                                </g>
+                            );
+                        })}
+
+                        {/* 中央の円 */}
+                        <circle cx={center} cy={center} r={innerRadius - 5} fill="var(--color-bg-card)" />
+
+                        {/* 時計の目盛り */}
+                        {hourMarks}
+
+                        {/* 中央テキスト */}
+                        <text x={center} y={center - 5} textAnchor="middle" fill="var(--color-accent)" fontSize="1rem" fontWeight="bold">
+                            24h
+                        </text>
+                        <text x={center} y={center + 12} textAnchor="middle" fill="#888" fontSize="0.6rem">
+                            時計表示
+                        </text>
+                    </svg>
+                </div>
+                {/* 凡例 */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '6px', marginTop: '16px', textAlign: 'left', maxHeight: '200px', overflowY: 'auto' }}>
+                    {clockData.filter(item => !item.hiddenInLegend).map((item, i) => {
+                        const hours = Math.floor(item.duration / 60);
+                        const mins = item.duration % 60;
+                        const durationStr = hours > 0 ? `${hours}h${mins > 0 ? mins + 'm' : ''}` : `${mins}m`;
+                        return (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', padding: '6px 10px', background: 'rgba(255,255,255,0.05)', borderRadius: '6px' }}>
+                                <div style={{ width: '12px', height: '12px', background: item.color, borderRadius: '3px', flexShrink: 0 }} />
+                                <span style={{ color: 'var(--color-secondary)', fontFamily: 'monospace', fontSize: '0.7rem', minWidth: '85px' }}>
+                                    {item.timeRange}
+                                </span>
+                                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</span>
+                                <span style={{ color: 'var(--color-accent)', fontWeight: 'bold', whiteSpace: 'nowrap' }}>{durationStr}</span>
+                            </div>
+                        );
                     })}
-                    <circle cx={center} cy={center} r={radius * 0.4} fill="var(--color-bg-card)" />
-                </svg>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center', marginTop: '10px' }}>
-                    {schedule.filter(s => s.duration > 0).map((item, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem' }}>
-                            <div style={{ width: '10px', height: '10px', background: item.color, borderRadius: '2px' }} />
-                            {item.title}
-                        </div>
-                    ))}
                 </div>
             </div>
         );
@@ -239,13 +647,59 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
                 <Clock size={24} color="var(--color-secondary)" />
                 <div style={{ flex: 1 }}>
                     <h3 style={{ margin: 0 }}>戦術プラン作成</h3>
-                    <p style={{ fontSize: '0.75rem', color: 'var(--color-text-sub)' }}>30分単位・色カスタム可能</p>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--color-text-sub)' }}>15分単位・色カスタム可能</p>
                 </div>
                 {schedule.length > 0 && (
                     <button onClick={() => setShowChart(!showChart)} style={{ background: 'none', border: '2px solid var(--color-accent)', borderRadius: '4px', padding: '6px', cursor: 'pointer' }}>
                         <PieChart size={18} color="var(--color-accent)" />
                     </button>
                 )}
+            </div>
+
+            {/* Character Display */}
+            <div
+                onClick={() => triggerReaction(Math.random() > 0.5 ? 'cheer' : 'praise')}
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    marginBottom: '1rem',
+                    padding: '10px',
+                    background: 'rgba(255,255,255,0.05)',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                }}
+            >
+                <img
+                    src={character.image}
+                    alt={character.name}
+                    style={{
+                        width: '60px',
+                        height: '60px',
+                        objectFit: 'contain',
+                        filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
+                    }}
+                />
+                <div style={{ flex: 1 }}>
+                    <div style={{
+                        fontSize: '0.7rem',
+                        color: 'var(--color-secondary)',
+                        marginBottom: '2px'
+                    }}>
+                        {character.displayName || character.name}がサポート中
+                    </div>
+                    <div style={{
+                        fontSize: '0.85rem',
+                        background: 'rgba(0,0,0,0.3)',
+                        padding: '6px 10px',
+                        borderRadius: '10px',
+                        borderTopLeftRadius: '2px',
+                        color: 'white'
+                    }}>
+                        {currentDialogue || '一緒にスケジュールを組もう！'}
+                    </div>
+                </div>
             </div>
 
             {schedule.length === 0 ? (
@@ -264,6 +718,58 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
                         </div>
                     </div>
 
+                    {/* Template Selection */}
+                    <div style={{ marginBottom: '1rem' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--color-accent)', display: 'block', marginBottom: '8px' }}>
+                            🎯 スケジュールタイプを選択
+                        </label>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                            {SCHEDULE_TEMPLATES.map(template => (
+                                <button
+                                    key={template.id}
+                                    onClick={() => {
+                                        if (chosenTemplateId === template.id) {
+                                            setChosenTemplateId(null);
+                                        } else {
+                                            setChosenTemplateId(template.id);
+                                            // テンプレートの時間を自動設定
+                                            if (template.wake) setWakeTime(template.wake);
+                                            if (template.bed) setBedTime(template.bed);
+                                            // デフォルトスケジュールがあれば自動適用
+                                            if (template.defaultSchedule) {
+                                                setSchedule(template.defaultSchedule);
+                                                setSelectedTemplate(template);
+                                            }
+                                        }
+                                    }}
+                                    style={{
+                                        padding: '8px 12px',
+                                        background: chosenTemplateId === template.id ? 'var(--color-primary)' : 'rgba(255,255,255,0.1)',
+                                        border: chosenTemplateId === template.id ? '2px solid white' : '2px solid #555',
+                                        borderRadius: '8px',
+                                        color: 'white',
+                                        fontSize: '0.8rem',
+                                        cursor: 'pointer',
+                                        fontFamily: 'inherit',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        transition: 'all 0.2s ease'
+                                    }}
+                                    title={`${template.desc} (${template.wake}〜${template.bed})`}
+                                >
+                                    <span>{template.icon}</span>
+                                    <span>{template.name}</span>
+                                </button>
+                            ))}
+                        </div>
+                        {!chosenTemplateId && (
+                            <p style={{ fontSize: '0.7rem', color: '#888', marginTop: '6px' }}>
+                                ※未選択の場合はランダムで決定されます
+                            </p>
+                        )}
+                    </div>
+
                     {/* Task Selection with Color */}
                     <div style={{ marginBottom: '1rem' }}>
                         <label style={{ fontSize: '0.8rem', color: 'var(--color-accent)', display: 'block', marginBottom: '8px' }}>
@@ -272,7 +778,7 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                             {presets.map(preset => {
                                 const isSelected = selectedTasks.find(t => t.id === preset.id);
-                                const displayDuration = roundTo30Min(preset.duration) || 30;
+                                const displayDuration = roundTo15Min(preset.duration) || 15;
                                 const presetColor = preset.color || AVAILABLE_COLORS[0].color;
 
                                 return (
@@ -389,10 +895,11 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
                 </>
             ) : (
                 <div className="animate-pop">
-                    <div style={{ textAlign: 'center', marginBottom: '1rem', padding: '8px', background: 'rgba(0,0,0,0.3)', borderRadius: '4px' }}>
-                        <span style={{ fontSize: '0.75rem', color: '#ccc' }}>プランタイプ</span>
-                        <h4 style={{ color: 'var(--color-accent)', fontSize: '1.2rem', marginTop: '2px', marginBottom: '0' }}>{selectedTemplate?.name}</h4>
-                        <p style={{ fontSize: '0.7rem', color: '#888', margin: 0 }}>{selectedTemplate?.desc}</p>
+                    <div style={{ textAlign: 'center', marginBottom: '1rem', padding: '12px', background: 'rgba(0,0,0,0.3)', borderRadius: '8px' }}>
+                        <span style={{ fontSize: '0.7rem', color: '#888', display: 'block', marginBottom: '4px' }}>{selectedTemplate?.category}</span>
+                        <div style={{ fontSize: '2rem', marginBottom: '4px' }}>{selectedTemplate?.icon}</div>
+                        <h4 style={{ color: 'var(--color-accent)', fontSize: '1.2rem', marginTop: '0', marginBottom: '4px' }}>{selectedTemplate?.name}</h4>
+                        <p style={{ fontSize: '0.75rem', color: '#aaa', margin: 0 }}>{selectedTemplate?.desc}</p>
                     </div>
 
                     {showChart && renderPieChart()}

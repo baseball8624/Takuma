@@ -6,11 +6,31 @@ export function useTaskPresets() {
     const [presets, setPresets] = useState(() => {
         const saved = localStorage.getItem(STORAGE_KEY);
         return saved ? JSON.parse(saved) : [
-            { id: '1', name: '集中作業', duration: 60, color: '#FF6B6B' },
-            { id: '2', name: '運動', duration: 30, color: '#4ECDC4' },
-            { id: '3', name: '休憩', duration: 30, color: '#95E1D3' },
-            { id: '4', name: '勉強', duration: 60, color: '#AA96DA' },
-            { id: '5', name: '読書', duration: 30, color: '#FFE66D' },
+            // 生活基本
+            { id: 'sleep', name: '睡眠', duration: 420, color: '#2C3E50' },
+            { id: 'morning_prep', name: '朝の準備', duration: 30, color: '#95A5A6' },
+            { id: 'breakfast', name: '朝食', duration: 30, color: '#FFB347' },
+            { id: 'lunch', name: '昼食', duration: 60, color: '#FFB347' },
+            { id: 'dinner', name: '夕食', duration: 60, color: '#FFB347' },
+            { id: 'bath', name: '入浴', duration: 30, color: '#4ECDC4' },
+            // 移動
+            { id: 'commute_am', name: '通勤・通学', duration: 60, color: '#87CEEB' },
+            { id: 'commute_pm', name: '帰宅', duration: 60, color: '#87CEEB' },
+            // 仕事・学業
+            { id: 'work', name: '仕事', duration: 480, color: '#3498DB' },
+            { id: 'school', name: '授業・学校', duration: 360, color: '#9B59B6' },
+            // 家事
+            { id: 'housework', name: '家事', duration: 60, color: '#E74C3C' },
+            { id: 'cooking', name: '料理', duration: 60, color: '#F39C12' },
+            // リラックス
+            { id: 'relax', name: 'リラックスタイム', duration: 60, color: '#AA96DA' },
+            { id: 'tv_youtube', name: 'TV・YouTube', duration: 60, color: '#E91E63' },
+            { id: 'game', name: 'ゲーム', duration: 60, color: '#8E44AD' },
+            { id: 'sns', name: 'SNS', duration: 30, color: '#1DA1F2' },
+            // 自己投資
+            { id: 'study', name: '勉強', duration: 60, color: '#27AE60' },
+            { id: 'exercise', name: '運動', duration: 30, color: '#E67E22' },
+            { id: 'reading', name: '読書', duration: 30, color: '#FFE66D' },
         ];
     });
 
