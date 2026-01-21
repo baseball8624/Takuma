@@ -53,6 +53,9 @@ const CHARACTERS = {
             30: '/assets/ignis_lv30.png',
             100: '/assets/ignis_lv100.png'
         },
+        tapImages: {
+            100: '/assets/ignis_lv100_tap.png'
+        },
         fallbackImage: '/assets/dragon.png'
     },
     aquel: {
@@ -105,6 +108,9 @@ const CHARACTERS = {
             7: '/assets/aquel_lv7.png',
             30: '/assets/aquel_lv30.png',
             100: '/assets/aquel_lv100.png'
+        },
+        tapImages: {
+            100: '/assets/aquel_lv100_tap.png'
         },
         fallbackImage: '/assets/aquel_lv1.png'
     },

@@ -7,6 +7,7 @@ import { useTaskPresets } from './hooks/useTaskPresets';
 import { useFont } from './hooks/useFont';
 import useHistory from './hooks/useHistory';
 import useNotifications from './hooks/useNotifications';
+import useSoundAndHaptics from './hooks/useSoundAndHaptics';
 import CharacterDisplay from './components/Character/CharacterDisplay';
 import TodoList from './components/TodoList/TodoList';
 import ScheduleWizard from './components/Scheduler/ScheduleWizard';
@@ -86,10 +87,10 @@ function App() {
   useEffect(() => {
     const interval = setInterval(() => {
       const hasIncompleteTasks = todos.some(t => !t.completed);
-      notifications.checkAndNotify(hasIncompleteTasks, selectedCharId);
+      notifications.checkAndNotify(hasIncompleteTasks, selectedCharId, level);
     }, 60000); // 1分ごと
     return () => clearInterval(interval);
-  }, [todos, selectedCharId, notifications]);
+  }, [todos, selectedCharId, level, notifications]);
 
   const handleTaskComplete = (id) => {
     const task = todos.find(t => t.id === id);
@@ -156,6 +157,7 @@ function App() {
               dialogue={currentDialogue}
               onInteract={() => triggerReaction('cheer')}
               evolutionStage={evolutionStage}
+              level={level}
             />
             <div className="card" style={{ marginTop: '-20px', position: 'relative', zIndex: 10, borderTop: '4px solid var(--color-primary)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
@@ -182,6 +184,17 @@ function App() {
                 progress={progress}
               />
             </div>
+
+            {/* リマインダー設定 */}
+            <NotificationSettings
+              permission={notifications.permission}
+              notificationEnabled={notifications.notificationEnabled}
+              setNotificationEnabled={notifications.setNotificationEnabled}
+              notificationTime={notifications.notificationTime}
+              setNotificationTime={notifications.setNotificationTime}
+              requestPermission={notifications.requestPermission}
+              characterName={character?.displayName || character?.name || 'パートナー'}
+            />
           </div>
         );
       case 'schedule':
