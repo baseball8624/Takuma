@@ -303,7 +303,7 @@ function App() {
 
           {/* Character Selection with individual levels */}
           <div>
-            <h4 style={{ marginBottom: '8px' }}>コーチ選択（キャラ別レベル）</h4>
+            <h4 style={{ marginBottom: '8px' }}>コーチ選択</h4>
             {todayLeveledCharacter && (
               <p style={{ fontSize: '0.75rem', color: '#888', marginBottom: '10px' }}>
                 ⚠️ 本日は別のキャラでレベルアップ済みです
@@ -353,28 +353,9 @@ function App() {
                       })()}
                     </div>
                     {/* Level adjustment controls */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', marginTop: '4px' }}>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setLevelForCharacter(char.id, charLevel - 1); }}
-                        style={{
-                          width: '20px', height: '20px',
-                          background: 'rgba(255,100,100,0.5)',
-                          border: 'none', borderRadius: '4px',
-                          color: 'white', cursor: 'pointer', fontSize: '0.8rem',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center'
-                        }}
-                      >−</button>
-                      <span style={{ color: '#FFD700', fontSize: '0.7rem', fontWeight: 'bold', minWidth: '28px' }}>Lv.{charLevel}</span>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setLevelForCharacter(char.id, charLevel + 1); }}
-                        style={{
-                          width: '20px', height: '20px',
-                          background: 'rgba(100,255,100,0.5)',
-                          border: 'none', borderRadius: '4px',
-                          color: 'white', cursor: 'pointer', fontSize: '0.8rem',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center'
-                        }}
-                      >+</button>
+                    {/* 現在のレベル表示（変更不可） */}
+                    <div style={{ marginTop: '4px', textAlign: 'center' }}>
+                      <span style={{ color: '#FFD700', fontSize: '0.7rem', fontWeight: 'bold' }}>Lv.{charLevel}</span>
                     </div>
                   </div>
                 );
