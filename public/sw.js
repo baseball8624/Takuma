@@ -1,4 +1,4 @@
-const CACHE_NAME = 'self-hero-v1';
+const CACHE_NAME = 'self-hero-v2';
 const urlsToCache = [
     '/',
     '/index.html',
@@ -30,15 +30,25 @@ self.addEventListener('activate', (event) => {
     self.clients.claim();
 });
 
-// フェッチ時にキャッシュを使用
+// Network First strategy
 self.addEventListener('fetch', (event) => {
     event.respondWith(
-        caches.match(event.request)
+        fetch(event.request)
             .then((response) => {
-                if (response) {
+                // 有効なレスポンスならキャッシュを更新して返す
+                if (!response || response.status !== 200 || response.type !== 'basic') {
                     return response;
                 }
-                return fetch(event.request);
+                const responseToCache = response.clone();
+                caches.open(CACHE_NAME)
+                    .then((cache) => {
+                        cache.put(event.request, responseToCache);
+                    });
+                return response;
+            })
+            .catch(() => {
+                // オフライン時などはキャッシュから返す
+                return caches.match(event.request);
             })
     );
 });
