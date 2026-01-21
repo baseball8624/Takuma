@@ -5,15 +5,25 @@ const LAST_OPENED_KEY = 'self_hero_last_date';
 
 export function useTodos() {
   const [todos, setTodos] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    let initialTodos = saved ? JSON.parse(saved) : [];
+    let initialTodos = [];
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          initialTodos = parsed;
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load todos:', e);
+    }
 
     // Check if it's a new day
     const lastDate = localStorage.getItem(LAST_OPENED_KEY);
     const today = new Date().toDateString();
 
     // If date changed, reset completion status
-    if (lastDate && lastDate !== today) {
+    if (lastDate && lastDate !== today && initialTodos.length > 0) {
       initialTodos = initialTodos.map(todo => ({
         ...todo,
         completed: false

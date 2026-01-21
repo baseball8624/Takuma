@@ -9,8 +9,13 @@ const DAILY_KEY = 'self_hero_daily_levelup';
 export function useCharacterLevels(characterId, allCompleted, todosCount) {
     // Load all character levels
     const [levels, setLevels] = useState(() => {
-        const saved = localStorage.getItem(LEVELS_KEY);
-        return saved ? JSON.parse(saved) : {};
+        try {
+            const saved = localStorage.getItem(LEVELS_KEY);
+            return saved ? JSON.parse(saved) : {};
+        } catch (e) {
+            console.error('Failed to load levels:', e);
+            return {};
+        }
     });
 
     // Track which character leveled up today
