@@ -569,15 +569,8 @@ export const getDialoguesForLevel = (character, level) => {
 
 // レベルに応じた名前を取得
 export const getNameForLevel = (character, level) => {
-    if (!character?.namesByLevel) return character?.name || 'キャラクター';
-
-    const thresholds = [100, 30, 7, 1];
-    for (const threshold of thresholds) {
-        if (level >= threshold && character.namesByLevel[threshold]) {
-            return character.namesByLevel[threshold];
-        }
-    }
-    return character.namesByLevel[1] || character.name;
+    // ユーザーの混乱を避けるため、進化形態に関わらず常にメインの名前を使用
+    return character?.name || 'キャラクター';
 };
 
 // ランダムな台詞を取得
