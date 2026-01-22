@@ -401,6 +401,7 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
         });
 
         setSchedule(items);
+        setShowChart(true); // 円グラフを自動表示
     };
 
     // スケジュールの時間を再計算して整合性を保つ
@@ -1101,38 +1102,100 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '1rem', maxHeight: '300px', overflowY: 'auto' }}>
                         {schedule.map((item, idx) => (
-                            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px', background: 'rgba(255,255,255,0.03)', borderRadius: '4px', borderLeft: `4px solid ${item.color}` }}>
-                                {isEditing && item.editable ? (
-                                    <>
-                                        <input type="time" value={item.time} onChange={e => updateScheduleItem(idx, 'time', e.target.value)} step="1800"
-                                            style={{ width: '75px', padding: '4px', borderRadius: '4px', border: '1px solid #555', background: '#000', color: 'var(--color-accent)', fontFamily: 'monospace', fontSize: '0.8rem' }} />
-                                        <input type="text" value={item.title} onChange={e => updateScheduleItem(idx, 'title', e.target.value)}
-                                            style={{ flex: 1, padding: '4px 8px', borderRadius: '4px', border: '1px solid #555', background: '#000', color: 'white', fontFamily: 'inherit', fontSize: '0.85rem' }} />
-                                        {/* Color picker for schedule item */}
-                                        <div style={{ display: 'flex', gap: '2px' }}>
-                                            {AVAILABLE_COLORS.slice(0, 5).map(c => (
-                                                <button key={c.id} onClick={() => updateScheduleItem(idx, 'color', c.color)}
-                                                    style={{ width: '18px', height: '18px', background: c.color, border: item.color === c.color ? '2px solid white' : 'none', borderRadius: '2px', cursor: 'pointer' }} />
-                                            ))}
-                                        </div>
-                                        <select value={item.duration} onChange={e => updateScheduleItem(idx, 'duration', e.target.value)}
-                                            style={{ width: '65px', padding: '4px', borderRadius: '4px', border: '1px solid #555', background: '#000', color: 'white', fontFamily: 'inherit', fontSize: '0.75rem' }}>
-                                            <option value={30}>30分</option>
-                                            <option value={60}>60分</option>
-                                            <option value={90}>90分</option>
-                                            <option value={120}>120分</option>
-                                            <option value={180}>180分</option>
-                                        </select>
-                                        <button onClick={() => deleteScheduleItem(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px' }}>
-                                            <Trash2 size={14} color="#ff4757" />
-                                        </button>
-                                    </>
-                                ) : (
-                                    <>
-                                        <span style={{ color: 'var(--color-accent)', minWidth: '50px', fontFamily: 'monospace', fontSize: '0.85rem' }}>{item.time}</span>
+                            <div key={idx} style={{
+                                display: 'flex', flexDirection: 'column', gap: '4px',
+                                padding: '8px',
+                                background: editingPresetId === `item-${idx}` ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.03)',
+                                borderRadius: '4px',
+                                borderLeft: `4px solid ${item.color}`,
+                                transition: 'all 0.2s'
+                            }}>
+                                <div
+                                    onClick={() => item.type !== 'system' && setEditingPresetId(editingPresetId === `item-${idx}` ? null : `item-${idx}`)}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: item.type !== 'system' ? 'pointer' : 'default' }}
+                                >
+                                    <span style={{ color: 'var(--color-accent)', minWidth: '50px', fontFamily: 'monospace', fontSize: '0.85rem' }}>{item.time}</span>
+                                    {isEditing && item.editable ? (
+                                        <input
+                                            type="text"
+                                            value={item.title}
+                                            onChange={e => updateScheduleItem(idx, 'title', e.target.value)}
+                                            onClick={e => e.stopPropagation()}
+                                            style={{ flex: 1, padding: '4px 8px', borderRadius: '4px', border: '1px solid #555', background: '#000', color: 'white', fontFamily: 'inherit', fontSize: '0.85rem' }}
+                                        />
+                                    ) : (
                                         <span style={{ flex: 1, fontSize: '0.85rem', color: item.type === 'system' ? '#888' : 'white' }}>{item.title}</span>
-                                        {item.duration > 0 && <span style={{ fontSize: '0.7rem', color: '#666', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '10px' }}>{item.duration}分</span>}
-                                    </>
+                                    )}
+
+                                    {item.duration > 0 && (
+                                        <span style={{ fontSize: '0.7rem', color: '#666', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '10px' }}>
+                                            {item.duration}分
+                                        </span>
+                                    )}
+                                </div>
+
+                                {/* 詳細編集・調整用パネル */}
+                                {(editingPresetId === `item-${idx}` || isEditing) && item.editable && (
+                                    <div style={{
+                                        marginTop: '4px',
+                                        paddingTop: '4px',
+                                        borderTop: '1px solid rgba(255,255,255,0.1)',
+                                        display: 'flex',
+                                        flexWrap: 'wrap',
+                                        gap: '8px',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between'
+                                    }}>
+                                        <div style={{ display: 'flex', gap: '4px' }}>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); adjustDuration(idx, -15); }}
+                                                style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid #555', borderRadius: '4px', color: 'white', width: '32px', cursor: 'pointer', fontSize: '0.7rem' }}
+                                            >
+                                                -15
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); adjustDuration(idx, -5); }}
+                                                style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid #555', borderRadius: '4px', color: 'white', width: '32px', cursor: 'pointer', fontSize: '0.7rem' }}
+                                            >
+                                                -5
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); adjustDuration(idx, +5); }}
+                                                style={{ background: 'var(--color-primary)', border: 'none', borderRadius: '4px', color: 'white', width: '32px', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 'bold' }}
+                                            >
+                                                +5
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); adjustDuration(idx, +15); }}
+                                                style={{ background: 'var(--color-primary)', border: 'none', borderRadius: '4px', color: 'white', width: '32px', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 'bold' }}
+                                            >
+                                                +15
+                                            </button>
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '4px' }}>
+                                            <button
+                                                onClick={() => moveScheduleItem(idx, 'up')}
+                                                disabled={idx === 0}
+                                                style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '4px', padding: '4px 8px', color: '#ccc', cursor: idx === 0 ? 'default' : 'pointer' }}
+                                            >
+                                                ↑
+                                            </button>
+                                            <button
+                                                onClick={() => moveScheduleItem(idx, 'down')}
+                                                disabled={idx === schedule.length - 1}
+                                                style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '4px', padding: '4px 8px', color: '#ccc', cursor: idx === schedule.length - 1 ? 'default' : 'pointer' }}
+                                            >
+                                                ↓
+                                            </button>
+                                            <button
+                                                onClick={() => deleteScheduleItem(idx)}
+                                                style={{ background: 'rgba(255,100,100,0.2)', border: 'none', borderRadius: '4px', padding: '4px 8px', color: '#ff6b6b', cursor: 'pointer' }}
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
+                                    </div>
                                 )}
                             </div>
                         ))}
