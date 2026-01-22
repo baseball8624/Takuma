@@ -1,7 +1,7 @@
 import { Clock, RefreshCcw, Plus, Trash2, Edit3, PieChart, Palette, Save, Star, GripVertical, Settings2, Sliders } from 'lucide-react';
 import { useCharacter } from '../../hooks/useCharacter';
 import { useScheduleTemplates } from '../../hooks/useScheduleTemplates';
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, TouchSensor } from '@dnd-kit/core';
+import { DndContext, closestCenter, KeyboardSensor, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -285,13 +285,17 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
 
     // DnD Sensors
     const sensors = useSensors(
-        useSensor(PointerSensor),
+        useSensor(MouseSensor, {
+            activationConstraint: {
+                distance: 10, // 10px移動したらドラッグ開始
+            },
+        }),
         useSensor(KeyboardSensor, {
             coordinateGetter: sortableKeyboardCoordinates,
         }),
         useSensor(TouchSensor, {
             activationConstraint: {
-                delay: 200, // 長押し200msで発火
+                delay: 250, // 長押し250msで発火
                 tolerance: 5,
             },
         })
@@ -374,13 +378,13 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
         const isFreelance = template.id === 'freelance';
         const isEarlyBird = template.id === 'early_bird';
 
-        // 朝型・フリーランスは朝にタスクを入れる
         if (isEarlyBird || isFreelance) {
             const morningTasks = selectedTasks.slice(0, Math.ceil(selectedTasks.length / 2));
             morningTasks.forEach((task, idx) => {
                 const taskDuration = roundTo15Min(task.duration) || 15;
+                const uniqueId = `task-${task.id}-am-${idx}-${Date.now()}`; // ユニークID強化
                 items.push({
-                    id: `task-${task.id}-am-${idx}`,
+                    id: uniqueId,
                     time: formatTime(currentMinutes),
                     title: task.name,
                     duration: taskDuration,
@@ -393,7 +397,7 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
                 // 休憩を挟む
                 if (idx < morningTasks.length - 1) {
                     items.push({
-                        id: `break-am-${idx}`,
+                        id: `break-am-${idx}-${Date.now()}`,
                         time: formatTime(currentMinutes),
                         title: '休憩',
                         duration: 30,
