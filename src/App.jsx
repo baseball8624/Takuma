@@ -163,7 +163,7 @@ function App() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                 <h3 style={{ fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Sparkles size={18} color="var(--color-accent)" />
-                  デイリーミッション
+                  今日のタスク
                 </h3>
                 <span style={{
                   fontSize: '0.85rem',

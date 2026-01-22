@@ -264,7 +264,13 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
     const [selectedTemplate, setSelectedTemplate] = useState(null);
     const [chosenTemplateId, setChosenTemplateId] = useState(null); // ユーザー選択
     const [schedule, setSchedule] = useState([]);
-    const [selectedTasks, setSelectedTasks] = useState([]);
+    // 初期状態で「今日のタスク」由来のもの（fromMission: true）を選択済みにする
+    const [selectedTasks, setSelectedTasks] = useState(() => {
+        return presets.filter(p => p.fromMission).map(p => ({
+            ...p,
+            duration: roundTo15Min(p.duration) || 30
+        }));
+    });
     const [isEditing, setIsEditing] = useState(false);
     const [newTaskName, setNewTaskName] = useState('');
     const [newTaskDuration, setNewTaskDuration] = useState(30);
