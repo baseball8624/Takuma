@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { useTodos } from './hooks/useTodos';
-import { useCharacter } from './hooks/useCharacter';
+import { useCharacter, CHARACTERS } from './hooks/useCharacter';
 import { useCharacterLevels } from './hooks/useCharacterLevels';
 import { useTaskPresets } from './hooks/useTaskPresets';
 import { useFont } from './hooks/useFont';
@@ -285,7 +285,7 @@ function App() {
     <>
       {isLoading && (
         <LoadingScreen
-          characterImage={getCharacterForLevel(selectedCharId, 1)?.image || character?.image}
+          allCharacters={CHARACTERS}
           onFinish={() => setIsLoading(false)}
         />
       )}

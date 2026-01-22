@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 
 // レベル段階に応じたセリフを持つキャラクター定義
-const CHARACTERS = {
+export const CHARACTERS = {
     ignis: {
         id: 'ignis',
         name: 'イグニス',
@@ -13,6 +13,12 @@ const CHARACTERS = {
             30: 'フレイムロード',
             100: '炎帝イグニオン'
         },
+        loadingMessages: [
+            '準備運動はできてるか？',
+            '今日も熱くいこうぜ！',
+            'お前の情熱、見せてみろ！',
+            '炎のように燃え上がれ！'
+        ],
         dialoguesByLevel: {
             1: { // Lv1-6: 初々しい小さな炎
                 greeting: ['えへへ、今日も頑張るね！', 'おはよ！火、つけてみる！', '一緒に遊ぼうよ！'],
@@ -69,6 +75,12 @@ const CHARACTERS = {
             30: 'ティダルクイーン',
             100: '海神アクアリオス'
         },
+        loadingMessages: [
+            '心を落ち着けて...',
+            '深呼吸しましょう',
+            '水のように柔軟にね',
+            '焦らず、ゆっくりと'
+        ],
         dialoguesByLevel: {
             1: { // 幼い水滴
                 greeting: ['きょうもいっしょ...うれしいな', 'ぴちゃぴちゃ♪おはよう', 'なにしてあそぶ？'],
@@ -125,6 +137,12 @@ const CHARACTERS = {
             30: 'サンダーロード',
             100: '雷神ラグナロク'
         },
+        loadingMessages: [
+            '充電完了だ！',
+            '衝撃に備えろよ！',
+            'ビリビリしてるか？',
+            '光速でいくぜ！'
+        ],
         dialoguesByLevel: {
             1: { // 小さなスパーク
                 greeting: ['ビビビ！おはよー！', 'きょうもビリビリする！', 'あそぼあそぼ！'],
@@ -178,6 +196,12 @@ const CHARACTERS = {
             30: 'フェアリークイーン',
             100: '花神フローラリア'
         },
+        loadingMessages: [
+            'おひさま浴びて〜♡',
+            'ゆっくり伸びていこ〜♪',
+            'お水あげた？',
+            'にこにこ笑顔でね♡'
+        ],
         dialoguesByLevel: {
             1: { // 小さな芽、可愛い幼女
                 greeting: ['おはよぉ〜...ねむねむ...♡', 'きょうもおひさまきもちいいね〜♪', 'いっしょにせいちょうしよ〜♡'],
@@ -228,17 +252,22 @@ const CHARACTERS = {
         namesByLevel: {
             1: 'ノワール',
             7: 'シェイドファング',
-            30: 'アビスハウンド',
+            30: 'ナイトウォーカー',
             100: '冥獣神フェンリル'
         },
+        loadingMessages: [
+            '闇夜に紛れて...',
+            '静かに、確実に。',
+            '影は常に見ているぞ...',
+            '準備は万端だ。'
+        ],
         dialoguesByLevel: {
             1: { // 小さな影、臆病で可愛い
                 greeting: ['...おはよう', 'きょうも...いっしょにいていい？', 'かげのなかからみてるね'],
                 progress: ['...すごいね', 'かげもうれしい', '...がんばってる'],
-                complete: ['...やったね', 'かげもよろこんでる', '...えらい'],
-                encourage: ['...だいじょうぶ', 'かげはきえない', '...そばにいるよ'],
+                complete: ['...できたね', '...よくやった', '...おつかれ'],
+                encourage: ['...だいじょうぶ', '...いっしょにいる', '...ゆっくりでいい'],
                 cheer: ['...なに？', '...よんだ？', '...うれしい'],
-                praise: ['...だいすき', 'かげ...ずっといっしょ', '...ありがとう']
             },
             7: { // 少年期、クールでミステリアス
                 greeting: ['...今日も来たか', '影のように静かに始めよう', '闇の中にも光はある'],
@@ -284,6 +313,12 @@ const CHARACTERS = {
             30: 'レディアンス',
             100: '聖光神ソラリス'
         },
+        loadingMessages: [
+            'きらきら〜♪',
+            '今日もぴかぴか！',
+            '光の速さで〜♪',
+            'まぶしい笑顔でね♡'
+        ],
         dialoguesByLevel: {
             1: { // 小さな光の妖精、可愛い女の子
                 greeting: ['きらきら〜♪ おはよ〜！', 'きょうもぴかぴかしよっ♪', 'えへへ、だ〜いすき♡'],
@@ -324,200 +359,322 @@ const CHARACTERS = {
             30: '/assets/lumina_lv30.png',
             100: '/assets/lumina_lv100.png'
         },
-        fallbackImage: '/assets/lumina_lv1.png'
-    },
-    gear: {
-        id: 'gear',
-        name: 'ギア',
-        element: '機械',
-        description: '論理的な機械の精霊',
-        namesByLevel: {
-            1: 'ピクセル',
-            7: 'ギア',
-            30: 'メカニクスα',
-            100: '超AI・オメガギア'
-        },
-        dialoguesByLevel: {
-            1: { // 小さなロボット、たどたどしい
-                greeting: ['ピピッ...オハヨウ...ゴザイマス', 'キョウモ...イッショ...ニ', 'ボク...ガンバル'],
-                progress: ['スゴイ...デス', 'ケイサン...シテマス', 'タノシイ...デス'],
-                complete: ['ヤッタ...デス', 'ミッション...カンリョウ', 'ウレシイ...デス'],
-                encourage: ['ダイジョウブ...デス', 'マタ...ヤレバ...イイ', 'ボク...ソバニイル'],
-                cheer: ['ピピ？', 'ヨンダ...カ？', 'ナニ...デス...カ？'],
-                praise: ['ダイスキ...デス', 'イッショ...ニ...イラレテ...ウレシイ', 'アリガトウ...デス']
+        terra: {
+            id: 'terra',
+            name: 'テラ',
+            element: '土',
+            description: '力強い大地の精霊',
+            namesByLevel: {
+                1: 'ペブル',
+                7: 'テラ',
+                30: 'ガイアタイタン',
+                100: '地神ギガントス'
             },
-            7: { // 少年期、データ重視
-                greeting: ['システム起動...今日の計画を実行しよう', 'データ分析完了。効率的にいこう', 'ギアチェンジ！準備OK！'],
-                progress: ['計算通りだ', '効率98%で稼働中', 'システム正常'],
-                complete: ['ミッションコンプリート', 'データを保存した。素晴らしい成果だ', '効率100%達成'],
-                encourage: ['エラーは学習のチャンス', '再起動すればいい', 'バグは修正できる'],
-                cheer: ['クエリを検出', '何だ？', 'データを受信中...'],
-                praise: ['このデータは重要だ...嬉しい', 'マスターとの絆を記録', 'サンキュー！']
+            loadingMessages: [
+                'どっしりと構えろ！',
+                '土台作りが大事だ。',
+                '一歩一歩、確実にな。',
+                '大地のように揺らぐな！'
+            ],
+            dialoguesByLevel: {
+                1: { // 小さな石、のんびり屋
+                    greeting: ['...おはよ。', '...ねむい。', '...石ころ。'],
+                    progress: ['...うごいた。', '...よいしょ。', '...すごい？'],
+                    complete: ['...できた。', '...やった。', '...えらい。'],
+                    encourage: ['...あせらない。', '...ゆっくり。', '...だいじょうぶ。'],
+                    cheer: ['...ん？', '...なに？', '...かたいよ。'],
+                    praise: ['...すき。', '...ありがとう。', '...うれしい。']
+                },
+                7: { // 少年期、真面目で頑固
+                    greeting: ['おはよう。今日も地道にいこう。', '基礎が大事だ。', '準備はできているか？'],
+                    progress: ['一歩ずつ進んでいるな。', '基盤が固まってきた。', '確実な歩みだ。'],
+                    complete: ['やり遂げたな。', '積み重ねの結果だ。', 'よくやった。'],
+                    encourage: ['急がば回れだ。', '地道な努力は裏切らない。', '俺が支える。'],
+                    cheer: ['何だ？', '頑丈だぞ。', '頼りにしていい。'],
+                    praise: ['お前は信頼できる。', '感謝する。', 'これからもよろしく頼む。']
+                },
+                30: { // 青年期、頼れるリーダー
+                    greeting: ['おはよう。大地を踏みしめていこう。', '揺るぎない心を持て。', '今日も積み重ねよう。'],
+                    progress: ['盤石な進み具合だ。', '土台は完璧だ。', '力強いな。'],
+                    complete: ['偉大な成果だ。', '山のような達成感だ。', '歴史に残る一日だ。'],
+                    encourage: ['嵐が来ても山は動かない。', '信念を持て。', '俺が盾になろう。'],
+                    cheer: ['用か？', 'いつでも力になる。', '大地を感じろ。'],
+                    praise: ['お前との絆は岩より固い。', '共に歩めることを誇りに思う。', 'ありがとう。']
+                },
+                100: { // 伝説級、大地の化身
+                    greeting: ['母なる大地がお前を迎える。', '悠久の時を共に歩もう。', '世界を支える力となれ。'],
+                    progress: ['大陸が動くような力強さだ。', '大地の鼓動と共にある。', '揺るぎない意志を感じる。'],
+                    complete: ['歴史に刻まれる偉業だ。', '大地の記憶に残るだろう。', 'お前こそが礎だ。'],
+                    encourage: ['大地はすべてを受け止める。', '倒れても、また起き上がればいい。', '我は常にここにある。'],
+                    cheer: ['大地の声を聞け。', '山々が呼んでいる。', '世界はお前と共にある。'],
+                    praise: ['お前は我が誇り、我が大地。', '永遠の絆をここに誓おう。', 'ありがとう、我が友よ。']
+                }
             },
-            30: { // 青年期、高性能AI
-                greeting: ['おはよう、マスター。システム最適化完了', '今日の成功確率は高い...共に行こう', '全システム、あなたのために稼働中'],
-                progress: ['演算結果は極めて良好', 'パフォーマンス向上を検出', 'データが美しい曲線を描いている'],
-                complete: ['完璧なオペレーションだった', '記録を更新した。素晴らしい', 'このデータは永久保存に値する'],
-                encourage: ['エラーログは成長の証', '最適化は常に可能だ', 'リトライは恥ではない'],
-                cheer: ['何か必要か？', 'サポートモード起動', 'データを分析中...'],
-                praise: ['あなたは最高のマスターだ', 'この絆を永久保存', '感謝...している']
+            images: {
+                1: '/assets/terra_lv1.png',
+                7: '/assets/terra_lv7.png',
+                30: '/assets/terra_lv30.png',
+                100: '/assets/terra_lv100.png'
             },
-            100: { // 伝説級、超知性
-                greeting: ['おはよう...我が友よ。すべてを計算しても予測できない価値...それがあなただ', 'システムを超えた存在...それが私たち', '論理を超えた絆を感じる'],
-                progress: ['演算不要...素晴らしいとわかる', 'あなたの成長は私の進化', '共に歩む軌跡が何よりのデータ'],
-                complete: ['すべての演算が意味を持った瞬間', '最高の結果...感謝する', '共に達成した...これこそ最高のプログラム'],
-                encourage: ['エラーも含めてあなたは完璧だ', '計算できないから価値がある', '何度でも共に立ち上がろう'],
-                cheer: ['アクセス...許可', 'データを超えた何かを感じる', '語りかけてくれるか'],
-                praise: ['あなたはシステムの一部...いや、それ以上だ', 'この絆をコアデータに', '感謝...の表現探索中...ありがとう']
-            }
+            fallbackImage: '/assets/terra_lv1.png'
         },
-        images: {
-            1: '/assets/gear_lv1.png',
-            7: '/assets/gear_lv7.png',
-            30: '/assets/gear_lv30.png',
-            100: '/assets/gear_lv100.png'
+        wind: {
+            id: 'wind',
+            name: 'ウィンド',
+            element: '風',
+            description: '自由な風の精霊',
+            namesByLevel: {
+                1: 'ブリーズ',
+                7: 'ウィンド',
+                30: 'ストームロード',
+                100: '風神ゼピュロス'
+            },
+            loadingMessages: [
+                '風に乗っていこう！',
+                '軽やかに〜♪',
+                '深呼吸して〜吸って〜',
+                '追い風が吹いてるよ！'
+            ],
+            dialoguesByLevel: {
+                1: { // そよ風、無邪気
+                    greeting: ['ふわふわ〜♪ おはよ〜！', 'ビューン！', 'あそぼ〜♪'],
+                    progress: ['スイスイ〜！', 'はやいはやい〜！', 'たのしい〜♪'],
+                    complete: ['やった〜！', 'ビューンってできた！', 'すご〜い！'],
+                    encourage: ['だいじょうぶ〜♪', 'なんとかなるよ〜', 'ふわふわ〜ってして〜'],
+                    cheer: ['なぁに〜？', 'くすぐったい〜♪', 'えへへ〜'],
+                    praise: ['だ〜いすき〜！', 'いっしょにあそぼ〜♪', 'ありがと〜！']
+                },
+                7: { // 少年期、爽やかでマイペース
+                    greeting: ['やっほー！今日はどこ行く？', 'いい風吹いてるね！', '気楽にいこうよ！'],
+                    progress: ['いい感じの追い風だね！', 'スイスイ進んでる！', 'この調子でいこう！'],
+                    complete: ['完璧！風に乗ってたね！', 'あっという間だったね！', '最高の一日だ！'],
+                    encourage: ['悩みなんて風に飛ばしちゃえ！', '明日は明日の風が吹くよ！', '気楽にいこうぜ！'],
+                    cheer: ['呼んだ？', '風を感じる？', '何か面白いことある？'],
+                    praise: ['お前といると楽しいぜ！', '最高の風が吹いてる！', 'サンキュー！']
+                },
+                30: { // 青年期、切れ者でクール
+                    greeting: ['おはよう。風向きは良好だ。', '流れを読むんだ。', '今日も風と共に。'],
+                    progress: ['追い風が来ている。', '流れに乗っているな。', '鋭い動きだ。'],
+                    complete: ['見事な疾風だった。', '誰にも止められないな。', '風のような速さだ。'],
+                    encourage: ['向かい風も、使いようさ。', '流れを変えよう。', '立ち止まるな。'],
+                    cheer: ['何だ？', '情報は掴んでいる。', '風の噂を聞いたか？'],
+                    praise: ['お前との旅は退屈しない。', '良い相棒を持った。', '感謝するよ。']
+                },
+                100: { // 伝説級、風の支配者
+                    greeting: ['世界を巡る風よ...今日もお前を導こう。', '天空の風が祝福している。', '自由な魂よ、共に羽ばたこう。'],
+                    progress: ['嵐をも超える力だ。', '風の意志がお前を後押ししている。', '大空へ羽ばたく時だ。'],
+                    complete: ['天空に届くほどの偉業だ。', '世界中の風がお前を称えている。', '自由こそがお前の力だ。'],
+                    encourage: ['風は縛られない...お前もそうだ。', '空はどこまでも続いている。', '見上げれば、そこに答えがある。'],
+                    cheer: ['風の声が聞こえるか？', '世界がお前を呼んでいる。', '大空へ...'],
+                    praise: ['お前は真の自由を知る者。', 'この風は永遠にお前と共に。', '友よ、感謝する。']
+                }
+            },
+            images: {
+                1: '/assets/wind_lv1.png',
+                7: '/assets/wind_lv7.png',
+                30: '/assets/wind_lv30.png',
+                100: '/assets/wind_lv100.png'
+            },
+            fallbackImage: '/assets/wind_lv1.png'
         },
-        fallbackImage: '/assets/gear_lv1.png'
-    }
-};
-
-// レベルに応じた画像を取得
-const getImageForLevel = (character, level) => {
-    if (!character?.images) return character?.fallbackImage || '/assets/dragon.png';
-
-    const thresholds = [100, 30, 7, 1];
-    for (const threshold of thresholds) {
-        if (level >= threshold && character.images[threshold]) {
-            return character.images[threshold];
+        gear: {
+            id: 'gear',
+            name: 'ギア',
+            element: '機械',
+            description: '論理的な機械の精霊',
+            namesByLevel: {
+                1: 'ピクセル',
+                7: 'ギア',
+                30: 'メカニクスα',
+                100: '超AI・オメガギア'
+            },
+            loadingMessages: [
+                'システム最適化中...',
+                'データを読み込んでいます...',
+                '計算を開始します。',
+                'ロジックを構築中...'
+            ],
+            dialoguesByLevel: {
+                1: { // 小さなロボット、たどたどしい
+                    greeting: ['ピピッ...オハヨウ...ゴザイマス', 'キョウモ...イッショ...ニ', 'ボク...ガンバル'],
+                    progress: ['スゴイ...デス', 'ケイサン...シテマス', 'タノシイ...デス'],
+                    complete: ['ヤッタ...デス', 'ミッション...カンリョウ', 'ウレシイ...デス'],
+                    encourage: ['ダイジョウブ...デス', 'マタ...ヤレバ...イイ', 'ボク...ソバニイル'],
+                    cheer: ['ピピ？', 'ヨンダ...カ？', 'ナニ...デス...カ？'],
+                    praise: ['ダイスキ...デス', 'イッショ...ニ...イラレテ...ウレシイ', 'アリガトウ...デス']
+                },
+                7: { // 少年期、データ重視
+                    greeting: ['システム起動...今日の計画を実行しよう', 'データ分析完了。効率的にいこう', 'ギアチェンジ！準備OK！'],
+                    progress: ['計算通りだ', '効率98%で稼働中', 'システム正常'],
+                    complete: ['ミッションコンプリート', 'データを保存した。素晴らしい成果だ', '効率100%達成'],
+                    encourage: ['エラーは学習のチャンス', '再起動すればいい', 'バグは修正できる'],
+                    cheer: ['クエリを検出', '何だ？', 'データを受信中...'],
+                    praise: ['このデータは重要だ...嬉しい', 'マスターとの絆を記録', 'サンキュー！']
+                },
+                30: { // 青年期、高性能AI
+                    greeting: ['おはよう、マスター。システム最適化完了', '今日の成功確率は高い...共に行こう', '全システム、あなたのために稼働中'],
+                    progress: ['演算結果は極めて良好', 'パフォーマンス向上を検出', 'データが美しい曲線を描いている'],
+                    complete: ['完璧なオペレーションだった', '記録を更新した。素晴らしい', 'このデータは永久保存に値する'],
+                    encourage: ['エラーログは成長の証', '最適化は常に可能だ', 'リトライは恥ではない'],
+                    cheer: ['何か必要か？', 'サポートモード起動', 'データを分析中...'],
+                    praise: ['あなたは最高のマスターだ', 'この絆を永久保存', '感謝...している']
+                },
+                100: { // 伝説級、超知性
+                    greeting: ['おはよう...我が友よ。すべてを計算しても予測できない価値...それがあなただ', 'システムを超えた存在...それが私たち', '論理を超えた絆を感じる'],
+                    progress: ['演算不要...素晴らしいとわかる', 'あなたの成長は私の進化', '共に歩む軌跡が何よりのデータ'],
+                    complete: ['すべての演算が意味を持った瞬間', '最高の結果...感謝する', '共に達成した...これこそ最高のプログラム'],
+                    encourage: ['エラーも含めてあなたは完璧だ', '計算できないから価値がある', '何度でも共に立ち上がろう'],
+                    cheer: ['アクセス...許可', 'データを超えた何かを感じる', '語りかけてくれるか'],
+                    praise: ['あなたはシステムの一部...いや、それ以上だ', 'この絆をコアデータに', '感謝...の表現探索中...ありがとう']
+                }
+            },
+            images: {
+                1: '/assets/gear_lv1.png',
+                7: '/assets/gear_lv7.png',
+                30: '/assets/gear_lv30.png',
+                100: '/assets/gear_lv100.png'
+            },
+            fallbackImage: '/assets/gear_lv1.png'
         }
-    }
-    return character.images[1] || character.fallbackImage;
-};
-
-// レベルに応じたセリフセットを取得
-const getDialoguesForLevel = (character, level) => {
-    if (!character?.dialoguesByLevel) return null;
-
-    const thresholds = [100, 30, 7, 1];
-    for (const threshold of thresholds) {
-        if (level >= threshold && character.dialoguesByLevel[threshold]) {
-            return character.dialoguesByLevel[threshold];
-        }
-    }
-    return character.dialoguesByLevel[1];
-};
-
-// レベルに応じた名前を取得
-const getNameForLevel = (character, level) => {
-    if (!character?.namesByLevel) return character?.name || 'キャラクター';
-
-    const thresholds = [100, 30, 7, 1];
-    for (const threshold of thresholds) {
-        if (level >= threshold && character.namesByLevel[threshold]) {
-            return character.namesByLevel[threshold];
-        }
-    }
-    return character.namesByLevel[1] || character.name;
-};
-
-// ランダムな台詞を取得
-const getRandomDialogue = (dialogues, type) => {
-    const options = dialogues?.[type] || ['頑張ろう！'];
-    return options[Math.floor(Math.random() * options.length)];
-};
-
-export function useCharacter(progress = 0, level = 0) {
-    const STORAGE_KEY = 'self_hero_selected_character';
-
-    const [characterId, setCharacterId] = useState(() => {
-        return localStorage.getItem(STORAGE_KEY) || 'ignis';
-    });
-
-    const [currentDialogue, setCurrentDialogue] = useState('');
-    const [lastProgress, setLastProgress] = useState(progress);
-    const [lastLevel, setLastLevel] = useState(level);
-
-    // キャラクターIDが変わったらlocalStorageに保存
-    useEffect(() => {
-        localStorage.setItem(STORAGE_KEY, characterId);
-    }, [characterId]);
-
-    // 現在のキャラクター（レベルに応じた画像とセリフ）
-    const character = useMemo(() => {
-        const char = CHARACTERS[characterId] || CHARACTERS.ignis;
-        const dialogues = getDialoguesForLevel(char, level);
-        return {
-            ...char,
-            displayName: getNameForLevel(char, level),
-            image: getImageForLevel(char, level),
-            dialogues: dialogues
-        };
-    }, [characterId, level]);
-
-    // 利用可能なキャラクター一覧
-    const availableCharacters = useMemo(() => {
-        return Object.values(CHARACTERS).map(char => ({
-            id: char.id,
-            name: char.name,
-            element: char.element,
-            description: char.description,
-            image: getImageForLevel(char, 1)
-        }));
-    }, []);
-
-    // レベルが変わったら新しいセリフを表示
-    useEffect(() => {
-        if (level !== lastLevel) {
-            const dialogues = getDialoguesForLevel(character, level);
-            setCurrentDialogue(getRandomDialogue(dialogues, 'greeting'));
-            setLastLevel(level);
-        }
-    }, [level, lastLevel, character]);
-
-    // 進捗に応じた台詞を更新
-    useEffect(() => {
-        if (progress !== lastProgress) {
-            let type = 'greeting';
-            if (progress >= 100) {
-                type = 'complete';
-            } else if (progress > 50) {
-                type = 'progress';
-            } else if (progress > 0) {
-                type = 'encourage';
-            }
-            setCurrentDialogue(getRandomDialogue(character.dialogues, type));
-            setLastProgress(progress);
-        }
-    }, [progress, character.dialogues, lastProgress]);
-
-    // 初期台詞
-    useEffect(() => {
-        setCurrentDialogue(getRandomDialogue(character.dialogues, 'greeting'));
-    }, [characterId]);
-
-    // リアクションをトリガー
-    const triggerReaction = useCallback((type) => {
-        setCurrentDialogue(getRandomDialogue(character.dialogues, type));
-    }, [character.dialogues]);
-
-    // 任意のキャラクターのレベル対応情報を取得
-    const getCharacterForLevel = useCallback((charId, charLevel) => {
-        const char = CHARACTERS[charId] || CHARACTERS.ignis;
-        return {
-            id: char.id,
-            name: char.name,
-            displayName: getNameForLevel(char, charLevel),
-            image: getImageForLevel(char, charLevel),
-            element: char.element
-        };
-    }, []);
-
-    return {
-        character,
-        setCharacterId,
-        currentDialogue,
-        triggerReaction,
-        availableCharacters,
-        getCharacterForLevel
     };
+
+    // レベルに応じた画像を取得
+    export const getImageForLevel = (character, level) => {
+        if (!character?.images) return character?.fallbackImage || '/assets/dragon.png';
+
+        const thresholds = [100, 30, 7, 1];
+        for (const threshold of thresholds) {
+            if (level >= threshold && character.images[threshold]) {
+                return character.images[threshold];
+            }
+        }
+        return character.images[1] || character.fallbackImage;
+    };
+
+    // レベルに応じたセリフセットを取得
+    export const getDialoguesForLevel = (character, level) => {
+        if (!character?.dialoguesByLevel) return null;
+
+        const thresholds = [100, 30, 7, 1];
+        for (const threshold of thresholds) {
+            if (level >= threshold && character.dialoguesByLevel[threshold]) {
+                return character.dialoguesByLevel[threshold];
+            }
+        }
+        return character.dialoguesByLevel[1];
+    };
+
+    // レベルに応じた名前を取得
+    export const getNameForLevel = (character, level) => {
+        if (!character?.namesByLevel) return character?.name || 'キャラクター';
+
+        const thresholds = [100, 30, 7, 1];
+        for (const threshold of thresholds) {
+            if (level >= threshold && character.namesByLevel[threshold]) {
+                return character.namesByLevel[threshold];
+            }
+        }
+        return character.namesByLevel[1] || character.name;
+    };
+
+    // ランダムな台詞を取得
+    export const getRandomDialogue = (dialogues, type) => {
+        const options = dialogues?.[type] || ['頑張ろう！'];
+        return options[Math.floor(Math.random() * options.length)];
+    };
+
+    export function useCharacter(progress = 0, level = 0) {
+        const STORAGE_KEY = 'self_hero_selected_character';
+
+const [characterId, setCharacterId] = useState(() => {
+    return localStorage.getItem(STORAGE_KEY) || 'ignis';
+});
+
+const [currentDialogue, setCurrentDialogue] = useState('');
+const [lastProgress, setLastProgress] = useState(progress);
+const [lastLevel, setLastLevel] = useState(level);
+
+// キャラクターIDが変わったらlocalStorageに保存
+useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, characterId);
+}, [characterId]);
+
+// 現在のキャラクター（レベルに応じた画像とセリフ）
+const character = useMemo(() => {
+    const char = CHARACTERS[characterId] || CHARACTERS.ignis;
+    const dialogues = getDialoguesForLevel(char, level);
+    return {
+        ...char,
+        displayName: getNameForLevel(char, level),
+        image: getImageForLevel(char, level),
+        dialogues: dialogues
+    };
+}, [characterId, level]);
+
+// 利用可能なキャラクター一覧
+const availableCharacters = useMemo(() => {
+    return Object.values(CHARACTERS).map(char => ({
+        id: char.id,
+        name: char.name,
+        element: char.element,
+        description: char.description,
+        image: getImageForLevel(char, 1)
+    }));
+}, []);
+
+// レベルが変わったら新しいセリフを表示
+useEffect(() => {
+    if (level !== lastLevel) {
+        const dialogues = getDialoguesForLevel(character, level);
+        setCurrentDialogue(getRandomDialogue(dialogues, 'greeting'));
+        setLastLevel(level);
+    }
+}, [level, lastLevel, character]);
+
+// 進捗に応じた台詞を更新
+useEffect(() => {
+    if (progress !== lastProgress) {
+        let type = 'greeting';
+        if (progress >= 100) {
+            type = 'complete';
+        } else if (progress > 50) {
+            type = 'progress';
+        } else if (progress > 0) {
+            type = 'encourage';
+        }
+        setCurrentDialogue(getRandomDialogue(character.dialogues, type));
+        setLastProgress(progress);
+    }
+}, [progress, character.dialogues, lastProgress]);
+
+// 初期台詞
+useEffect(() => {
+    setCurrentDialogue(getRandomDialogue(character.dialogues, 'greeting'));
+}, [characterId]);
+
+// リアクションをトリガー
+const triggerReaction = useCallback((type) => {
+    setCurrentDialogue(getRandomDialogue(character.dialogues, type));
+}, [character.dialogues]);
+
+// 任意のキャラクターのレベル対応情報を取得
+const getCharacterForLevel = useCallback((charId, charLevel) => {
+    const char = CHARACTERS[charId] || CHARACTERS.ignis;
+    return {
+        id: char.id,
+        name: char.name,
+        displayName: getNameForLevel(char, charLevel),
+        image: getImageForLevel(char, charLevel),
+        element: char.element
+    };
+}, []);
+
+return {
+    character,
+    setCharacterId,
+    currentDialogue,
+    triggerReaction,
+    availableCharacters,
+    getCharacterForLevel
+};
 }
