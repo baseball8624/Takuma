@@ -403,17 +403,72 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
         setSchedule(items);
     };
 
+    // スケジュールの時間を再計算して整合性を保つ
+    const recalculateSchedule = (newSchedule) => {
+        let currentMinutes = 0;
+
+        // 開始時間を取得（起床時間）
+        if (wakeTime) {
+            const [h, m] = wakeTime.split(':').map(Number);
+            currentMinutes = h * 60 + m;
+        }
+
+        return newSchedule.map(item => {
+            const startTime = formatTime(currentMinutes);
+            const duration = item.duration || 0;
+
+            // 次の項目の開始時間のために加算
+            const startLimit = currentMinutes;
+            currentMinutes += duration;
+
+            return {
+                ...item,
+                time: startTime
+            };
+        });
+    };
+
     const updateScheduleItem = (index, field, value) => {
         const newSchedule = [...schedule];
+
         if (field === 'duration') {
             value = roundTo15Min(parseInt(value) || 15);
+            if (value < 15) value = 15; // 最低15分
         }
+
         newSchedule[index] = { ...newSchedule[index], [field]: value };
-        setSchedule(newSchedule);
+
+        // 時間変更の場合は全体を再計算
+        if (field === 'duration') {
+            const recalculated = recalculateSchedule(newSchedule);
+            setSchedule(recalculated);
+        } else {
+            setSchedule(newSchedule);
+        }
     };
 
     const deleteScheduleItem = (index) => {
-        setSchedule(schedule.filter((_, i) => i !== index));
+        const newSchedule = schedule.filter((_, i) => i !== index);
+        // 削除後も時間は詰める
+        setSchedule(recalculateSchedule(newSchedule));
+    };
+
+    const moveScheduleItem = (index, direction) => {
+        const newSchedule = [...schedule];
+        if (direction === 'up' && index > 0) {
+            [newSchedule[index], newSchedule[index - 1]] = [newSchedule[index - 1], newSchedule[index]];
+        } else if (direction === 'down' && index < newSchedule.length - 1) {
+            [newSchedule[index], newSchedule[index + 1]] = [newSchedule[index + 1], newSchedule[index]];
+        }
+        setSchedule(recalculateSchedule(newSchedule));
+    };
+
+    // 時間調整ヘルパー
+    const adjustDuration = (index, amount) => {
+        const item = schedule[index];
+        const currentDuration = item.duration || 0;
+        const newDuration = Math.max(15, currentDuration + amount); // 最低15分
+        updateScheduleItem(index, 'duration', newDuration);
     };
 
     const handleAddNewPreset = () => {
@@ -565,8 +620,8 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
         return (
             <div style={{ textAlign: 'center', marginBottom: '1.5rem', padding: '0.5rem', background: 'rgba(0,0,0,0.2)', borderRadius: '12px' }}>
                 <h4 style={{ margin: '0 0 12px 0', color: 'var(--color-accent)', fontSize: '0.9rem' }}>🕐 24時間時計グラフ (タップで詳細)</h4>
-                <div style={{ position: 'relative', display: 'inline-block' }}>
-                    <svg width={size} height={size} style={{ display: 'block', margin: '0 auto', overflow: 'visible' }}>
+                <div style={{ position: 'relative', width: '100%', maxWidth: '360px', margin: '0 auto' }}>
+                    <svg viewBox={`0 0 ${size} ${size}`} style={{ width: '100%', height: 'auto', overflow: 'visible' }}>
                         <circle cx={center} cy={center} r={radius} fill="#222" stroke="#444" strokeWidth="2" />
 
                         {clockData.map((slice, i) => {
