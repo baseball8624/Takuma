@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Clock, RefreshCcw, Plus, Trash2, Edit3, PieChart, Palette } from 'lucide-react';
+import { Clock, RefreshCcw, Plus, Trash2, Edit3, PieChart, Palette, Save, Star } from 'lucide-react';
 import { useCharacter } from '../../hooks/useCharacter';
+import { useScheduleTemplates } from '../../hooks/useScheduleTemplates';
 
 // Color palette for tasks (user can pick from these)
 const AVAILABLE_COLORS = [
@@ -122,6 +123,23 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
     const [newTaskColor, setNewTaskColor] = useState(AVAILABLE_COLORS[0].color);
     const [showChart, setShowChart] = useState(false);
     const [editingPresetId, setEditingPresetId] = useState(null);
+
+    // Template saving
+    const { templates: customTemplates, saveTemplate, deleteTemplate } = useScheduleTemplates();
+    const [newTemplateName, setNewTemplateName] = useState('');
+    const [showSaveInput, setShowSaveInput] = useState(false);
+
+    // Pie Chart interaction
+    const [selectedSlice, setSelectedSlice] = useState(null);
+
+    const handleSaveTemplate = () => {
+        if (newTemplateName.trim()) {
+            saveTemplate(newTemplateName, schedule, wakeTime, bedTime);
+            setNewTemplateName('');
+            setShowSaveInput(false);
+            alert('テンプレートを保存しました！');
+        }
+    };
 
     const toggleTaskSelection = (preset) => {
         if (selectedTasks.find(t => t.id === preset.id)) {
@@ -433,23 +451,18 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
     }, [schedule]);
 
     const renderPieChart = () => {
-        const size = 320;
+        const size = 360; // サイズ拡大
         const center = size / 2;
         const radius = size / 2 - 30;
         const innerRadius = radius * 0.5;
-        const total24Hours = 24 * 60; // 24時間 = 1440分
+        const total24Hours = 24 * 60;
 
-        // スケジュールを時刻ベースで配置（時計式）
         const clockData = [];
-
-        // 各スケジュール項目を実際の時刻に配置
         const scheduleItems = schedule.filter(item => item.duration > 0).map(item => {
             const [startH, startM] = (item.time || '00:00').split(':').map(Number);
             const startMinutes = startH * 60 + startM;
             const endMinutes = startMinutes + item.duration;
             const endTime = `${String(Math.floor(endMinutes / 60) % 24).padStart(2, '0')}:${String(endMinutes % 60).padStart(2, '0')}`;
-
-            // 時刻を角度に変換（0時が上、時計回り）
             const startAngle = (startMinutes / total24Hours) * 360;
             const endAngle = (endMinutes / total24Hours) * 360;
 
@@ -463,13 +476,10 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
             };
         });
 
-        // 時刻順にソート
         scheduleItems.sort((a, b) => a.startMinutes - b.startMinutes);
 
-        // スケジュール項目と隙間（空き時間）を追加
         let lastEnd = 0;
         scheduleItems.forEach(item => {
-            // 日中の隙間があれば「空き時間」として追加
             if (item.startMinutes > lastEnd) {
                 const gapStart = lastEnd;
                 const gapEnd = item.startMinutes;
@@ -478,7 +488,7 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
                 clockData.push({
                     title: '⏳ 空き時間',
                     duration: gapEnd - gapStart,
-                    color: '#37474f', // ダークグレー
+                    color: '#37474f',
                     startAngle: (gapStart / total24Hours) * 360,
                     endAngle: (gapEnd / total24Hours) * 360,
                     timeRange: `${startTime}〜${endTime}`,
@@ -491,22 +501,17 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
             lastEnd = item.endMinutes;
         });
 
-        // 最後のスケジュール〜24時と0時〜最初のスケジュールを「睡眠」として統合
         if (scheduleItems.length > 0) {
             const firstStart = scheduleItems[0].startMinutes;
             const lastEndTime = lastEnd;
-
-            // 睡眠時間 = 0時〜最初のスケジュール + 最後のスケジュール〜24時
-            const sleepBeforeMorning = firstStart; // 0時〜最初
-            const sleepAfterNight = total24Hours - lastEndTime; // 最後〜24時
+            const sleepBeforeMorning = firstStart;
+            const sleepAfterNight = total24Hours - lastEndTime;
             const totalSleep = sleepBeforeMorning + sleepAfterNight;
 
             if (totalSleep > 0) {
-                // 23:00〜07:00 のような表示
                 const sleepStartTime = `${String(Math.floor(lastEndTime / 60)).padStart(2, '0')}:${String(lastEndTime % 60).padStart(2, '0')}`;
                 const sleepEndTime = `${String(Math.floor(firstStart / 60)).padStart(2, '0')}:${String(firstStart % 60).padStart(2, '0')}`;
 
-                // 2つのパスで表示（0時を跨ぐ）
                 if (sleepAfterNight > 0) {
                     clockData.push({
                         title: '💤 睡眠',
@@ -518,7 +523,6 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
                         startMinutes: lastEndTime,
                         endMinutes: total24Hours,
                         isSleep: true,
-                        // 後半部分も同じ色で描画されるようにフラグ
                         continuesAfterMidnight: sleepBeforeMorning > 0
                     });
                 }
@@ -533,14 +537,12 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
                         startMinutes: 0,
                         endMinutes: firstStart,
                         isSleep: true,
-                        // 凡例に重複表示しない
                         hiddenInLegend: true
                     });
                 }
             }
         }
 
-        // 時計の目盛りを描画
         const hourMarks = [];
         for (let h = 0; h < 24; h += 3) {
             const angle = (h / 24) * 360 - 90;
@@ -549,24 +551,24 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
             const y1 = center + (radius + 8) * Math.sin(rad);
             const x2 = center + (radius + 18) * Math.cos(rad);
             const y2 = center + (radius + 18) * Math.sin(rad);
+            const textX = center + (radius + 30) * Math.cos(rad);
+            const textY = center + (radius + 30) * Math.sin(rad) + 4;
+
             hourMarks.push(
                 <g key={`mark-${h}`}>
                     <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#555" strokeWidth="2" />
-                    <text x={center + (radius + 26) * Math.cos(rad)} y={center + (radius + 26) * Math.sin(rad) + 4}
-                        textAnchor="middle" fill="#888" fontSize="0.6rem">{h}</text>
+                    <text x={textX} y={textY} textAnchor="middle" fill="#888" fontSize="0.7rem" fontWeight="bold">{h}</text>
                 </g>
             );
         }
 
         return (
-            <div style={{ textAlign: 'center', marginBottom: '1.5rem', padding: '1rem', background: 'rgba(0,0,0,0.2)', borderRadius: '12px' }}>
-                <h4 style={{ margin: '0 0 12px 0', color: 'var(--color-accent)', fontSize: '0.9rem' }}>🕐 24時間時計グラフ</h4>
+            <div style={{ textAlign: 'center', marginBottom: '1.5rem', padding: '0.5rem', background: 'rgba(0,0,0,0.2)', borderRadius: '12px' }}>
+                <h4 style={{ margin: '0 0 12px 0', color: 'var(--color-accent)', fontSize: '0.9rem' }}>🕐 24時間時計グラフ (タップで詳細)</h4>
                 <div style={{ position: 'relative', display: 'inline-block' }}>
-                    <svg width={size} height={size} style={{ display: 'block' }}>
-                        {/* 背景の円 */}
+                    <svg width={size} height={size} style={{ display: 'block', margin: '0 auto', overflow: 'visible' }}>
                         <circle cx={center} cy={center} r={radius} fill="#222" stroke="#444" strokeWidth="2" />
 
-                        {/* スケジュール項目 */}
                         {clockData.map((slice, i) => {
                             const startRad = (slice.startAngle - 90) * Math.PI / 180;
                             const endRad = (slice.endAngle - 90) * Math.PI / 180;
@@ -580,58 +582,104 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
                             const ix2 = center + innerRadius * Math.cos(endRad);
                             const iy2 = center + innerRadius * Math.sin(endRad);
 
-                            // ドーナツ型のパス
                             const path = `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} L ${ix2} ${iy2} A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${ix1} ${iy1} Z`;
 
-                            // ラベル位置（中間角度）
                             const midAngle = ((slice.startAngle + slice.endAngle) / 2 - 90) * Math.PI / 180;
                             const labelRadius = (radius + innerRadius) / 2;
                             const labelX = center + labelRadius * Math.cos(midAngle);
                             const labelY = center + labelRadius * Math.sin(midAngle);
 
-                            // ラベル表示（30分以上の項目のみ）
-                            const showLabel = slice.duration >= 60;
+                            const isSelected = selectedSlice === i;
+                            const showLabel = slice.duration >= 45; // 少し緩和
 
                             return (
-                                <g key={i}>
-                                    <path d={path} fill={slice.color} stroke="var(--color-bg-card)" strokeWidth="2" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }} />
+                                <g
+                                    key={i}
+                                    onClick={() => setSelectedSlice(isSelected ? null : i)}
+                                    style={{
+                                        cursor: 'pointer',
+                                        transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                                        transformOrigin: `${center}px ${center}px`,
+                                        transform: isSelected ? 'scale(1.05)' : 'scale(1)',
+                                        zIndex: isSelected ? 10 : 1,
+                                        opacity: (selectedSlice !== null && !isSelected) ? 0.6 : 1
+                                    }}
+                                >
+                                    <path
+                                        d={path}
+                                        fill={slice.color}
+                                        stroke="var(--color-bg-card)"
+                                        strokeWidth={isSelected ? "3" : "1"}
+                                        style={{
+                                            filter: isSelected ? 'drop-shadow(0 4px 8px rgba(0,0,0,0.5)) brightness(1.1)' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
+                                        }}
+                                    />
                                     {showLabel && (
-                                        <text x={labelX} y={labelY} textAnchor="middle" dominantBaseline="middle" fill="#fff" fontSize="0.55rem" fontWeight="bold" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
-                                            {slice.title.length > 6 ? slice.title.slice(0, 5) + '…' : slice.title}
+                                        <text x={labelX} y={labelY} textAnchor="middle" dominantBaseline="middle" fill="#fff" fontSize="0.6rem" fontWeight="bold" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)', pointerEvents: 'none' }}>
+                                            {slice.title.length > 5 ? slice.title.slice(0, 4) + '…' : slice.title}
                                         </text>
                                     )}
                                 </g>
                             );
                         })}
 
-                        {/* 中央の円 */}
                         <circle cx={center} cy={center} r={innerRadius - 5} fill="var(--color-bg-card)" />
-
-                        {/* 時計の目盛り */}
                         {hourMarks}
 
-                        {/* 中央テキスト */}
-                        <text x={center} y={center - 5} textAnchor="middle" fill="var(--color-accent)" fontSize="1rem" fontWeight="bold">
-                            24h
-                        </text>
-                        <text x={center} y={center + 12} textAnchor="middle" fill="#888" fontSize="0.6rem">
-                            時計表示
-                        </text>
+                        {/* 中央テキスト (選択時は詳細) */}
+                        <g onClick={() => setSelectedSlice(null)} style={{ cursor: selectedSlice !== null ? 'pointer' : 'default' }}>
+                            {selectedSlice !== null ? (
+                                <>
+                                    <text x={center} y={center - 15} textAnchor="middle" fill="var(--color-accent)" fontSize="0.8rem" fontWeight="bold">
+                                        {clockData[selectedSlice]?.timeRange}
+                                    </text>
+                                    <text x={center} y={center + 5} textAnchor="middle" fill="white" fontSize="0.9rem" fontWeight="bold">
+                                        {clockData[selectedSlice]?.title}
+                                    </text>
+                                    <text x={center} y={center + 20} textAnchor="middle" fill="#ccc" fontSize="0.7rem">
+                                        {Math.floor(clockData[selectedSlice]?.duration / 60)}h {clockData[selectedSlice]?.duration % 60}m
+                                    </text>
+                                </>
+                            ) : (
+                                <>
+                                    <text x={center} y={center - 5} textAnchor="middle" fill="var(--color-accent)" fontSize="1.2rem" fontWeight="bold">
+                                        24h
+                                    </text>
+                                    <text x={center} y={center + 12} textAnchor="middle" fill="#888" fontSize="0.6rem">
+                                        Total
+                                    </text>
+                                </>
+                            )}
+                        </g>
                     </svg>
                 </div>
-                {/* 凡例 */}
+
+                {/* 凡例 (選択連動) */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '6px', marginTop: '16px', textAlign: 'left', maxHeight: '200px', overflowY: 'auto' }}>
                     {clockData.filter(item => !item.hiddenInLegend).map((item, i) => {
                         const hours = Math.floor(item.duration / 60);
                         const mins = item.duration % 60;
                         const durationStr = hours > 0 ? `${hours}h${mins > 0 ? mins + 'm' : ''}` : `${mins}m`;
+                        const isSelected = selectedSlice === i;
+
                         return (
-                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', padding: '6px 10px', background: 'rgba(255,255,255,0.05)', borderRadius: '6px' }}>
+                            <div
+                                key={i}
+                                onClick={() => setSelectedSlice(isSelected ? null : i)}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', padding: '8px 12px',
+                                    background: isSelected ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.05)',
+                                    borderRadius: '6px',
+                                    border: isSelected ? `1px solid ${item.color}` : '1px solid transparent',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
                                 <div style={{ width: '12px', height: '12px', background: item.color, borderRadius: '3px', flexShrink: 0 }} />
-                                <span style={{ color: 'var(--color-secondary)', fontFamily: 'monospace', fontSize: '0.7rem', minWidth: '85px' }}>
+                                <span style={{ color: 'var(--color-secondary)', fontFamily: 'monospace', fontSize: '0.75rem', minWidth: '85px' }}>
                                     {item.timeRange}
                                 </span>
-                                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</span>
+                                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: isSelected ? 'bold' : 'normal' }}>{item.title}</span>
                                 <span style={{ color: 'var(--color-accent)', fontWeight: 'bold', whiteSpace: 'nowrap' }}>{durationStr}</span>
                             </div>
                         );
@@ -650,11 +698,36 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
                     <p style={{ fontSize: '0.75rem', color: 'var(--color-text-sub)' }}>15分単位・色カスタム可能</p>
                 </div>
                 {schedule.length > 0 && (
-                    <button onClick={() => setShowChart(!showChart)} style={{ background: 'none', border: '2px solid var(--color-accent)', borderRadius: '4px', padding: '6px', cursor: 'pointer' }}>
-                        <PieChart size={18} color="var(--color-accent)" />
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                            onClick={() => setShowSaveInput(true)}
+                            style={{
+                                background: 'none', border: '1px solid #FFD700', borderRadius: '4px', padding: '6px', cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', color: '#FFD700'
+                            }}
+                        >
+                            <Save size={16} /> 保存
+                        </button>
+                        <button onClick={() => setShowChart(!showChart)} style={{ background: 'none', border: '2px solid var(--color-accent)', borderRadius: '4px', padding: '6px', cursor: 'pointer' }}>
+                            <PieChart size={18} color="var(--color-accent)" />
+                        </button>
+                    </div>
                 )}
             </div>
+
+            {showSaveInput && (
+                <div style={{ marginBottom: '1rem', padding: '10px', background: 'rgba(255,215,0,0.1)', borderRadius: '8px', border: '1px solid #FFD700', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <input
+                        type="text"
+                        value={newTemplateName}
+                        onChange={e => setNewTemplateName(e.target.value)}
+                        placeholder="テンプレート名を入力（例：休日ルーティン）"
+                        style={{ flex: 1, padding: '8px', borderRadius: '4px', border: 'none', background: 'rgba(0,0,0,0.3)', color: 'white' }}
+                    />
+                    <button onClick={handleSaveTemplate} style={{ background: '#FFD700', border: 'none', borderRadius: '4px', padding: '8px 12px', cursor: 'pointer', color: 'black', fontWeight: 'bold' }}>保存</button>
+                    <button onClick={() => setShowSaveInput(false)} style={{ background: 'transparent', border: 'none', padding: '8px', cursor: 'pointer', color: '#ccc' }}>キャンセル</button>
+                </div>
+            )}
 
             {/* Character Display */}
             <div
@@ -720,9 +793,76 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
 
                     {/* Template Selection */}
                     <div style={{ marginBottom: '1rem' }}>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--color-accent)', display: 'block', marginBottom: '8px' }}>
-                            🎯 スケジュールタイプを選択
+                        <label style={{ fontSize: '0.8rem', color: 'var(--color-accent)', display: 'block', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span>🎯 スケジュールタイプを選択</span>
                         </label>
+
+                        {/* Custom Templates */}
+                        {customTemplates.length > 0 && (
+                            <div style={{ marginBottom: '8px' }}>
+                                <div style={{ fontSize: '0.7rem', color: '#888', marginBottom: '4px' }}>マイテンプレート</div>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                    {customTemplates.map(template => (
+                                        <div key={template.id} style={{ position: 'relative' }}>
+                                            <button
+                                                onClick={() => {
+                                                    if (chosenTemplateId === template.id) {
+                                                        setChosenTemplateId(null);
+                                                    } else {
+                                                        setChosenTemplateId(template.id);
+                                                        if (template.wake) setWakeTime(template.wake);
+                                                        if (template.bed) setBedTime(template.bed);
+                                                        if (template.schedule) {
+                                                            setSchedule(template.schedule);
+                                                            setSelectedTemplate(template);
+                                                            // If we load a full schedule, we might want to skip generation or handled differently
+                                                            // But for now let's treat it as applying settings
+                                                        }
+                                                    }
+                                                }}
+                                                style={{
+                                                    padding: '8px 12px',
+                                                    background: chosenTemplateId === template.id ? 'var(--color-primary)' : 'rgba(255,215,0,0.15)',
+                                                    border: chosenTemplateId === template.id ? '2px solid white' : '1px solid #FFD700',
+                                                    borderRadius: '8px',
+                                                    color: 'white',
+                                                    fontSize: '0.8rem',
+                                                    cursor: 'pointer',
+                                                    fontFamily: 'inherit',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '6px'
+                                                }}
+                                            >
+                                                <span>{template.icon}</span>
+                                                <span>{template.name}</span>
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); if (confirm('削除しますか？')) deleteTemplate(template.id); }}
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: -5,
+                                                    right: -5,
+                                                    background: '#ff6b6b',
+                                                    border: 'none',
+                                                    borderRadius: '50%',
+                                                    width: '16px',
+                                                    height: '16px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    cursor: 'pointer',
+                                                    color: 'white'
+                                                }}
+                                            >
+                                                <Trash2 size={10} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                             {SCHEDULE_TEMPLATES.map(template => (
                                 <button
