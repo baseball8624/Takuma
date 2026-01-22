@@ -16,6 +16,7 @@ import HistoryView from './components/History/HistoryView';
 import NotificationSettings from './components/Settings/NotificationSettings';
 import BottomNav from './components/Common/BottomNav';
 import CelebrationModal from './components/Common/CelebrationModal';
+import LoadingScreen from './components/LoadingScreen';
 import { Settings, Sparkles, Type, Trophy, Lock, History, Bell } from 'lucide-react';
 
 // Evolution stages based on level
@@ -58,6 +59,16 @@ function App() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [hasShownCelebration, setHasShownCelebration] = useState(false);
   const [currentSchedule, setCurrentSchedule] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Loading Effect
+  useEffect(() => {
+    // Show splash screen for 2.5 seconds
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, []);
   const [previousLevel, setPreviousLevel] = useState(level);
 
   // Record history when data changes
@@ -271,132 +282,140 @@ function App() {
   };
 
   return (
-    <div className="app-container" style={{ padding: '20px', paddingBottom: '100px' }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', height: '40px' }}>
-        <h1 style={{ fontSize: '1.3rem', fontWeight: '900', color: 'var(--color-primary)', letterSpacing: '-0.5px', textShadow: '0 0 10px var(--color-primary)' }}>
-          Grow <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: 'var(--color-text-main)', marginLeft: '4px' }}>- 育てる習慣</span>
-        </h1>
-        <button
-          onClick={() => setShowSettings(!showSettings)}
-          style={{ background: 'var(--color-bg-card)', border: '2px solid white', cursor: 'pointer', padding: '8px', borderRadius: '4px', boxShadow: 'var(--shadow-pixel)' }}
-        >
-          <Settings size={18} color="white" />
-        </button>
-      </header>
+    <>
+      {isLoading && (
+        <LoadingScreen
+          characterImage={getCharacterForLevel(selectedCharId, 1)?.image || character?.image}
+          onFinish={() => setIsLoading(false)}
+        />
+      )}
+      <div className="app-container" style={{ padding: '20px', paddingBottom: '100px', display: isLoading ? 'none' : 'block' }}>
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', height: '40px' }}>
+          <h1 style={{ fontSize: '1.3rem', fontWeight: '900', color: 'var(--color-primary)', letterSpacing: '-0.5px', textShadow: '0 0 10px var(--color-primary)' }}>
+            Grow <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: 'var(--color-text-main)', marginLeft: '4px' }}>- 育てる習慣</span>
+          </h1>
+          <button
+            onClick={() => setShowSettings(!showSettings)}
+            style={{ background: 'var(--color-bg-card)', border: '2px solid white', cursor: 'pointer', padding: '8px', borderRadius: '4px', boxShadow: 'var(--shadow-pixel)' }}
+          >
+            <Settings size={18} color="white" />
+          </button>
+        </header>
 
-      {showSettings && (
-        <div className="card animate-pop" style={{ marginBottom: '1rem', border: '2px solid var(--color-primary)', position: 'absolute', zIndex: 50, width: 'calc(100% - 40px)', background: 'var(--color-bg-card)', maxHeight: '80vh', overflowY: 'auto' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-            <h3>設定</h3>
-            <button onClick={() => setShowSettings(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
-          </div>
-
-          {/* Font Selection */}
-          <div style={{ marginBottom: '1.5rem' }}>
-            <h4 style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Type size={16} /> フォント
-            </h4>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              {availableFonts.map(f => (
-                <button
-                  key={f.id}
-                  onClick={() => setFontId(f.id)}
-                  style={{
-                    padding: '8px 12px',
-                    background: font.id === f.id ? 'var(--color-primary)' : 'rgba(255,255,255,0.1)',
-                    border: font.id === f.id ? '2px solid white' : '2px solid transparent',
-                    borderRadius: '4px',
-                    color: 'white',
-                    cursor: 'pointer',
-                    fontFamily: f.family,
-                    fontSize: '0.9rem'
-                  }}
-                >
-                  {f.name}
-                </button>
-              ))}
+        {showSettings && (
+          <div className="card animate-pop" style={{ marginBottom: '1rem', border: '2px solid var(--color-primary)', position: 'absolute', zIndex: 50, width: 'calc(100% - 40px)', background: 'var(--color-bg-card)', maxHeight: '80vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <h3>設定</h3>
+              <button onClick={() => setShowSettings(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
             </div>
-          </div>
 
-          {/* Character Selection with individual levels */}
-          <div>
-            <h4 style={{ marginBottom: '8px' }}>コーチ選択</h4>
-            {todayLeveledCharacter && (
-              <p style={{ fontSize: '0.75rem', color: '#888', marginBottom: '10px' }}>
-                ⚠️ 本日は別のキャラでレベルアップ済みです
-              </p>
-            )}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '8px' }}>
-              {availableCharacters.map(char => {
-                const charLevel = getLevelForCharacter(char.id);
-                const isSelected = character.id === char.id;
-                const isBlockedToday = todayLeveledCharacter && todayLeveledCharacter !== char.id;
-
-                return (
-                  <div
-                    key={char.id}
+            {/* Font Selection */}
+            <div style={{ marginBottom: '1.5rem' }}>
+              <h4 style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Type size={16} /> フォント
+              </h4>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {availableFonts.map(f => (
+                  <button
+                    key={f.id}
+                    onClick={() => setFontId(f.id)}
                     style={{
-                      padding: '8px',
-                      background: isSelected ? char.color : 'rgba(255,255,255,0.1)',
+                      padding: '8px 12px',
+                      background: font.id === f.id ? 'var(--color-primary)' : 'rgba(255,255,255,0.1)',
+                      border: font.id === f.id ? '2px solid white' : '2px solid transparent',
+                      borderRadius: '4px',
                       color: 'white',
-                      borderRadius: '8px',
-                      textAlign: 'center',
-                      fontSize: '0.65rem',
-                      border: isSelected ? '2px solid white' : '2px solid transparent',
-                      boxShadow: isSelected ? 'var(--shadow-pixel)' : 'none',
-                      opacity: isBlockedToday ? 0.6 : 1,
-                      position: 'relative'
+                      cursor: 'pointer',
+                      fontFamily: f.family,
+                      fontSize: '0.9rem'
                     }}
                   >
-                    {isBlockedToday && (
-                      <Lock size={12} style={{ position: 'absolute', top: '4px', right: '4px' }} color="#ff6b6b" />
-                    )}
+                    {f.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Character Selection with individual levels */}
+            <div>
+              <h4 style={{ marginBottom: '8px' }}>コーチ選択</h4>
+              {todayLeveledCharacter && (
+                <p style={{ fontSize: '0.75rem', color: '#888', marginBottom: '10px' }}>
+                  ⚠️ 本日は別のキャラでレベルアップ済みです
+                </p>
+              )}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '8px' }}>
+                {availableCharacters.map(char => {
+                  const charLevel = getLevelForCharacter(char.id);
+                  const isSelected = character.id === char.id;
+                  const isBlockedToday = todayLeveledCharacter && todayLeveledCharacter !== char.id;
+
+                  return (
                     <div
-                      onClick={() => { setCharacterId(char.id); setSelectedCharId(char.id); }}
-                      style={{ cursor: 'pointer' }}
+                      key={char.id}
+                      style={{
+                        padding: '8px',
+                        background: isSelected ? char.color : 'rgba(255,255,255,0.1)',
+                        color: 'white',
+                        borderRadius: '8px',
+                        textAlign: 'center',
+                        fontSize: '0.65rem',
+                        border: isSelected ? '2px solid white' : '2px solid transparent',
+                        boxShadow: isSelected ? 'var(--shadow-pixel)' : 'none',
+                        opacity: isBlockedToday ? 0.6 : 1,
+                        position: 'relative'
+                      }}
                     >
-                      {(() => {
-                        const evolvedChar = getCharacterForLevel(char.id, charLevel);
-                        return (
-                          <>
-                            {evolvedChar.image ? (
-                              <img src={evolvedChar.image} alt={evolvedChar.displayName} style={{ width: '40px', height: '40px', objectFit: 'contain' }} />
-                            ) : (
-                              <div style={{ fontSize: '2rem' }}>{char.emoji}</div>
-                            )}
-                            <div style={{ marginTop: '4px', fontWeight: 'bold', fontSize: '0.6rem' }}>{evolvedChar.displayName}</div>
-                          </>
-                        );
-                      })()}
+                      {isBlockedToday && (
+                        <Lock size={12} style={{ position: 'absolute', top: '4px', right: '4px' }} color="#ff6b6b" />
+                      )}
+                      <div
+                        onClick={() => { setCharacterId(char.id); setSelectedCharId(char.id); }}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        {(() => {
+                          const evolvedChar = getCharacterForLevel(char.id, charLevel);
+                          return (
+                            <>
+                              {evolvedChar.image ? (
+                                <img src={evolvedChar.image} alt={evolvedChar.displayName} style={{ width: '40px', height: '40px', objectFit: 'contain' }} />
+                              ) : (
+                                <div style={{ fontSize: '2rem' }}>{char.emoji}</div>
+                              )}
+                              <div style={{ marginTop: '4px', fontWeight: 'bold', fontSize: '0.6rem' }}>{evolvedChar.displayName}</div>
+                            </>
+                          );
+                        })()}
+                      </div>
+                      {/* Level adjustment controls */}
+                      {/* 現在のレベル表示（変更不可） */}
+                      <div style={{ marginTop: '4px', textAlign: 'center' }}>
+                        <span style={{ color: '#FFD700', fontSize: '0.7rem', fontWeight: 'bold' }}>Lv.{charLevel}</span>
+                      </div>
                     </div>
-                    {/* Level adjustment controls */}
-                    {/* 現在のレベル表示（変更不可） */}
-                    <div style={{ marginTop: '4px', textAlign: 'center' }}>
-                      <span style={{ color: '#FFD700', fontSize: '0.7rem', fontWeight: 'bold' }}>Lv.{charLevel}</span>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <main style={{ minHeight: '80vh' }}>
-        {renderContent()}
-      </main>
+        <main style={{ minHeight: '80vh' }}>
+          {renderContent()}
+        </main>
 
-      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+        <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
 
-      {/* Celebration Modal */}
-      <CelebrationModal
-        isOpen={showCelebration}
-        onClose={() => setShowCelebration(false)}
-        character={character}
-        level={level}
-        isLevelUp={isLevelUp}
-      />
-    </div>
+        {/* Celebration Modal */}
+        <CelebrationModal
+          isOpen={showCelebration}
+          onClose={() => setShowCelebration(false)}
+          character={character}
+          level={level}
+          isLevelUp={isLevelUp}
+        />
+      </div>
+    </>
   );
 }
 
