@@ -1,3 +1,4 @@
+import React, { useState, useMemo } from 'react';
 import { Clock, RefreshCcw, Plus, Trash2, Edit3, PieChart, Palette, Save, Star, GripVertical, Settings2, Sliders } from 'lucide-react';
 import { useCharacter } from '../../hooks/useCharacter';
 import { useScheduleTemplates } from '../../hooks/useScheduleTemplates';
