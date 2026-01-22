@@ -240,6 +240,11 @@ const SCHEDULE_TEMPLATES = [
     },
 ];
 
+// Helper for generating unique IDs
+const generateId = () => {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+};
+
 // Round to nearest 15 minutes
 const roundTo15Min = (minutes) => {
     return Math.round(minutes / 15) * 15;
@@ -382,7 +387,7 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
             const morningTasks = selectedTasks.slice(0, Math.ceil(selectedTasks.length / 2));
             morningTasks.forEach((task, idx) => {
                 const taskDuration = roundTo15Min(task.duration) || 15;
-                const uniqueId = `task-${task.id}-am-${idx}-${crypto.randomUUID()}`; // 確実にユニークなID
+                const uniqueId = `task-${task.id}-am-${idx}-${generateId()}`; // 互換性重視のID
                 items.push({
                     id: uniqueId,
                     time: formatTime(currentMinutes),
@@ -397,7 +402,7 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
                 // 休憩を挟む
                 if (idx < morningTasks.length - 1) {
                     items.push({
-                        id: `break-am-${idx}-${crypto.randomUUID()}`,
+                        id: `break-am-${idx}-${generateId()}`,
                         time: formatTime(currentMinutes),
                         title: '休憩',
                         duration: 30,
@@ -484,7 +489,7 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
 
             afternoonTasks.forEach((task, idx) => {
                 const taskDuration = roundTo15Min(task.duration) || 15;
-                const uniqueId = `task-${task.id}-pm-${idx}-${crypto.randomUUID()}`;
+                const uniqueId = `task-${task.id}-pm-${idx}-${generateId()}`;
                 items.push({
                     id: uniqueId,
                     time: formatTime(currentMinutes),
@@ -499,7 +504,7 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
                 // 休憩を挟む
                 if (idx < afternoonTasks.length - 1) {
                     items.push({
-                        id: `break-pm-${idx}-${crypto.randomUUID()}`,
+                        id: `break-pm-${idx}-${generateId()}`,
                         time: formatTime(currentMinutes),
                         title: '休憩',
                         duration: 30,
