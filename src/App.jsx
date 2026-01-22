@@ -272,19 +272,7 @@ function App() {
         />
       )}
       <div className="app-container" style={{ padding: '20px', paddingBottom: '100px', display: isLoading ? 'none' : 'block' }}>
-        {/* DEBUG MARKER - IF YOU SEE THIS, THE UPDATE WORKED */}
-        <div style={{
-          backgroundColor: '#FF4757',
-          color: 'white',
-          padding: '8px',
-          textAlign: 'center',
-          marginBottom: '10px',
-          borderRadius: '4px',
-          fontWeight: 'bold',
-          fontSize: '0.8rem'
-        }}>
-          🛠️ システム修正適用済み (v2.0)
-        </div>
+
 
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', height: '40px' }}>
           <h1 style={{ fontSize: '1.3rem', fontWeight: '900', color: 'var(--color-primary)', letterSpacing: '-0.5px', textShadow: '0 0 10px var(--color-primary)' }}>
