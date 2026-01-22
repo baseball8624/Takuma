@@ -382,7 +382,7 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
             const morningTasks = selectedTasks.slice(0, Math.ceil(selectedTasks.length / 2));
             morningTasks.forEach((task, idx) => {
                 const taskDuration = roundTo15Min(task.duration) || 15;
-                const uniqueId = `task-${task.id}-am-${idx}-${Date.now()}`; // ユニークID強化
+                const uniqueId = `task-${task.id}-am-${idx}-${crypto.randomUUID()}`; // 確実にユニークなID
                 items.push({
                     id: uniqueId,
                     time: formatTime(currentMinutes),
@@ -397,7 +397,7 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
                 // 休憩を挟む
                 if (idx < morningTasks.length - 1) {
                     items.push({
-                        id: `break-am-${idx}-${Date.now()}`,
+                        id: `break-am-${idx}-${crypto.randomUUID()}`,
                         time: formatTime(currentMinutes),
                         title: '休憩',
                         duration: 30,
@@ -478,11 +478,15 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
             currentMinutes += 60;
         } else {
             // フリーランス・その他は午後にタスクを配置
-            const afternoonTasks = isEarlyBird ? selectedTasks.slice(Math.ceil(selectedTasks.length / 2)) : selectedTasks;
+            const afternoonTasks = isEarlyBird || isFreelance
+                ? selectedTasks.slice(Math.ceil(selectedTasks.length / 2))
+                : selectedTasks;
+
             afternoonTasks.forEach((task, idx) => {
                 const taskDuration = roundTo15Min(task.duration) || 15;
+                const uniqueId = `task-${task.id}-pm-${idx}-${crypto.randomUUID()}`;
                 items.push({
-                    id: `task-${task.id}-pm-${idx}`,
+                    id: uniqueId,
                     time: formatTime(currentMinutes),
                     title: task.name,
                     duration: taskDuration,
@@ -492,9 +496,10 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
                 });
                 currentMinutes += taskDuration;
 
+                // 休憩を挟む
                 if (idx < afternoonTasks.length - 1) {
                     items.push({
-                        id: `break-pm-${idx}`,
+                        id: `break-pm-${idx}-${crypto.randomUUID()}`,
                         time: formatTime(currentMinutes),
                         title: '休憩',
                         duration: 30,
