@@ -15,7 +15,6 @@ import SocialStats from './components/Social/SocialStats';
 import HistoryView from './components/History/HistoryView';
 import NotificationSettings from './components/Settings/NotificationSettings';
 import BottomNav from './components/Common/BottomNav';
-import CelebrationModal from './components/Common/CelebrationModal';
 import LoadingScreen from './components/LoadingScreen';
 import BackupManager from './components/Settings/BackupManager';
 import { Settings, Sparkles, Type, Trophy, Lock, History, Bell } from 'lucide-react';
@@ -42,10 +41,10 @@ function App() {
   const allCompleted = todos.length > 0 && todos.every(t => t.completed);
 
   // Get basic character first (for ID)
-  const [selectedCharId, setSelectedCharId] = useState(() => localStorage.getItem('self_hero_char') || 'angel');
+  const [selectedCharId, setSelectedCharId] = useState(() => localStorage.getItem('self_hero_selected_character') || 'ignis');
 
   // Get level for the selected character
-  const { level, canLevelUp, blockedByOther, todayLeveledCharacter, getLevelForCharacter, setLevelForCharacter } = useCharacterLevels(selectedCharId, allCompleted, todos.length);
+  const { level, canLevelUp, blockedByOther, todayLeveledCharacter, getLevelForCharacter, setLevelForCharacter, attemptLevelUp } = useCharacterLevels(selectedCharId, allCompleted, todos.length);
 
   // Now get character with evolved image based on level
   const { character, setCharacterId, currentDialogue, triggerReaction, availableCharacters, getCharacterForLevel } = useCharacter(progress, level);
@@ -58,8 +57,7 @@ function App() {
   const [activeTab, setActiveTab] = useState('home');
   const [showSettings, setShowSettings] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [showCelebration, setShowCelebration] = useState(false);
-  const [hasShownCelebration, setHasShownCelebration] = useState(false);
+  // Celebration states removed
   const [currentSchedule, setCurrentSchedule] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -87,24 +85,10 @@ function App() {
   // Detect level up
   const isLevelUp = level > previousLevel;
 
-  // Show celebration when all tasks completed
-  useEffect(() => {
-    if (allCompleted && todos.length > 0 && !hasShownCelebration && canLevelUp) {
-      const timer = setTimeout(() => {
-        setShowCelebration(true);
-        setHasShownCelebration(true);
-        setPreviousLevel(level);
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [allCompleted, todos.length, hasShownCelebration, canLevelUp, level]);
+  // Celebration logic removed for stability
 
-  // Reset celebration flag when todos change
-  useEffect(() => {
-    if (!allCompleted) {
-      setHasShownCelebration(false);
-    }
-  }, [allCompleted]);
+
+
 
   // Check for notification every minute
   useEffect(() => {
@@ -125,6 +109,17 @@ function App() {
         origin: { y: 0.6 },
         colors: [character.color, '#FFD700', '#FF6B6B']
       });
+
+      // Check if this action completes all tasks
+      // todos is state, so we filter out the current one being toggled
+      const remainingTasks = todos.filter(t => !t.completed && t.id !== id);
+      if (remainingTasks.length === 0) {
+        // All tasks will be complete! Try to level up manually.
+        // We use a small timeout to ensure state settles
+        setTimeout(() => {
+          attemptLevelUp();
+        }, 300);
+      }
     }
     toggleTodo(id);
   };
@@ -158,21 +153,6 @@ function App() {
                 <span style={{ color: '#ccc', fontSize: '0.75rem' }}>({evolutionStage.name})</span>
               </div>
 
-              {blockedByOther && (
-                <div style={{
-                  background: 'rgba(255,0,0,0.2)',
-                  padding: '4px 10px',
-                  borderRadius: '10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  fontSize: '0.7rem',
-                  color: '#ff6b6b'
-                }}>
-                  <Lock size={12} />
-                  本日レベルアップ済
-                </div>
-              )}
             </div>
 
             <CharacterDisplay
@@ -292,6 +272,20 @@ function App() {
         />
       )}
       <div className="app-container" style={{ padding: '20px', paddingBottom: '100px', display: isLoading ? 'none' : 'block' }}>
+        {/* DEBUG MARKER - IF YOU SEE THIS, THE UPDATE WORKED */}
+        <div style={{
+          backgroundColor: '#FF4757',
+          color: 'white',
+          padding: '8px',
+          textAlign: 'center',
+          marginBottom: '10px',
+          borderRadius: '4px',
+          fontWeight: 'bold',
+          fontSize: '0.8rem'
+        }}>
+          🛠️ システム修正適用済み (v2.0)
+        </div>
+
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', height: '40px' }}>
           <h1 style={{ fontSize: '1.3rem', fontWeight: '900', color: 'var(--color-primary)', letterSpacing: '-0.5px', textShadow: '0 0 10px var(--color-primary)' }}>
             Grow <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: 'var(--color-text-main)', marginLeft: '4px' }}>- 育てる習慣</span>
@@ -333,22 +327,45 @@ function App() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '6px'
+                  gap: '6px',
+                  marginBottom: '10px'
                 }}
               >
                 <Settings size={16} />
                 バックアップと復元
+              </button>
+
+              <button
+                onClick={() => {
+                  if (window.confirm('本当に全てのデータを初期化してリセットしますか？この操作は取り消せません。')) {
+                    localStorage.clear();
+                    window.location.reload();
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  background: 'rgba(255, 107, 107, 0.2)',
+                  border: '1px solid #FF6B6B',
+                  borderRadius: '6px',
+                  color: '#FF6B6B',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                <Lock size={16} />
+                全データをリセット（修復）
               </button>
             </div>
 
             {/* Character Selection with individual levels */}
             <div style={{ marginBottom: '1.5rem' }}>
               <h4 style={{ marginBottom: '8px' }}>コーチ選択</h4>
-              {todayLeveledCharacter && (
-                <p style={{ fontSize: '0.75rem', color: '#888', marginBottom: '10px' }}>
-                  ⚠️ 本日は別のキャラでレベルアップ済みです
-                </p>
-              )}
+
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '8px' }}>
                 {availableCharacters.map(char => {
                   const charLevel = getLevelForCharacter(char.id);
@@ -371,9 +388,7 @@ function App() {
                         position: 'relative'
                       }}
                     >
-                      {isBlockedToday && (
-                        <Lock size={12} style={{ position: 'absolute', top: '4px', right: '4px' }} color="#ff6b6b" />
-                      )}
+
                       <div
                         onClick={() => { setCharacterId(char.id); setSelectedCharId(char.id); }}
                         style={{ cursor: 'pointer' }}
@@ -460,14 +475,7 @@ function App() {
           </div>
         )}
 
-        {/* Celebration Modal */}
-        <CelebrationModal
-          isOpen={showCelebration}
-          onClose={() => setShowCelebration(false)}
-          character={character}
-          level={level}
-          isLevelUp={isLevelUp}
-        />
+
       </div>
     </>
   );

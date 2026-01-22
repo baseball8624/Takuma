@@ -3,9 +3,6 @@ import { useState, useEffect } from 'react';
 const LEVELS_KEY = 'self_hero_character_levels';
 const DAILY_KEY = 'self_hero_daily_levelup';
 
-// テスト用コード削除
-// const TEST_LEVELS = { dragon: 35 };
-
 export function useCharacterLevels(characterId, allCompleted, todosCount) {
     // Load all character levels
     const [levels, setLevels] = useState(() => {
@@ -42,21 +39,30 @@ export function useCharacterLevels(characterId, allCompleted, todosCount) {
     // Check if already leveled up today with a different character
     const blockedByOther = dailyLevelUp.characterId !== null && dailyLevelUp.characterId !== characterId;
 
-    // Handle level up when all tasks completed
+    // AUTO-REPAIR: If daily flag is set for THIS character, but level is 0, reset the flag.
+    // This fixes the "stuck" state where the app thinks you leveled up but data wasn't saved.
     useEffect(() => {
-        const today = new Date().toDateString();
-
-        // Reset daily tracking if new day
-        if (dailyLevelUp.date !== today) {
+        if (dailyLevelUp.characterId === characterId && currentLevel === 0) {
+            console.log("Auto-repairing stuck state: Resetting daily flag for level 0");
+            const today = new Date().toDateString();
             const newDaily = { date: today, characterId: null };
             setDailyLevelUp(newDaily);
             localStorage.setItem(DAILY_KEY, JSON.stringify(newDaily));
         }
+    }, [dailyLevelUp, characterId, currentLevel]);
 
-        // Level up if: all completed, has tasks, can level up, and haven't leveled this char today
-        if (allCompleted && todosCount > 0 && canLevelUp && dailyLevelUp.characterId !== characterId) {
-            // Increment level
-            const newLevels = { ...levels, [characterId]: currentLevel + 1 };
+    // Manual level up trigger (imperative)
+    const attemptLevelUp = () => {
+        const today = new Date().toDateString();
+        // Allow if standard checks pass OR if we are stuck at level 0 (force retry)
+        const isLevelZero = currentLevel === 0;
+
+        if ((canLevelUp && dailyLevelUp.characterId !== characterId) || isLevelZero) {
+            // Increment level using functional update
+            const newLevelStart = levels[characterId] || 0;
+            const nextLevel = newLevelStart + 1;
+
+            const newLevels = { ...levels, [characterId]: nextLevel };
             setLevels(newLevels);
             localStorage.setItem(LEVELS_KEY, JSON.stringify(newLevels));
 
@@ -64,15 +70,28 @@ export function useCharacterLevels(characterId, allCompleted, todosCount) {
             const newDaily = { date: today, characterId: characterId };
             setDailyLevelUp(newDaily);
             localStorage.setItem(DAILY_KEY, JSON.stringify(newDaily));
+
+            return true;
         }
-    }, [allCompleted, todosCount, characterId, canLevelUp]);
+        return false;
+    };
+
+    // New Day Reset Check
+    useEffect(() => {
+        const today = new Date().toDateString();
+        if (dailyLevelUp.date !== today) {
+            const newDaily = { date: today, characterId: null };
+            setDailyLevelUp(newDaily);
+            localStorage.setItem(DAILY_KEY, JSON.stringify(newDaily));
+        }
+    }, [dailyLevelUp.date]);
 
     // Get level for any character
     const getLevelForCharacter = (charId) => levels[charId] || 0;
 
     // Set level for any character (for dev/testing)
     const setLevelForCharacter = (charId, newLevel) => {
-        const clampedLevel = Math.max(0, newLevel); // 上限なし
+        const clampedLevel = Math.max(0, newLevel);
         const newLevels = { ...levels, [charId]: clampedLevel };
         setLevels(newLevels);
         localStorage.setItem(LEVELS_KEY, JSON.stringify(newLevels));
@@ -85,6 +104,7 @@ export function useCharacterLevels(characterId, allCompleted, todosCount) {
         todayLeveledCharacter: dailyLevelUp.characterId,
         getLevelForCharacter,
         setLevelForCharacter,
+        attemptLevelUp,
         allLevels: levels
     };
 }

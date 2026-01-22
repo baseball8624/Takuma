@@ -228,15 +228,11 @@ body {
 
   0%,
   100% {
-    transform: translateY(0) rotate(0deg);
+    transform: translateY(0);
   }
 
-  25% {
-    transform: translateY(-5px) rotate(1deg);
-  }
-
-  75% {
-    transform: translateY(-3px) rotate(-1deg);
+  50% {
+    transform: translateY(-6px);
   }
 }
 
