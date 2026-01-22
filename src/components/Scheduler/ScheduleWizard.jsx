@@ -257,13 +257,14 @@ const formatTime = (totalMinutes) => {
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 };
 
-export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePreset, level = 1 }) {
+export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePreset, level = 1, schedule = [], onScheduleChange }) {
     const { character, triggerReaction, currentDialogue } = useCharacter(0, level);
     const [wakeTime, setWakeTime] = useState('07:00');
     const [bedTime, setBedTime] = useState('23:00');
     const [selectedTemplate, setSelectedTemplate] = useState(null);
     const [chosenTemplateId, setChosenTemplateId] = useState(null); // ユーザー選択
-    const [schedule, setSchedule] = useState([]);
+    // const [schedule, setSchedule] = useState([]); // Moved to App.jsx
+    const setSchedule = onScheduleChange; // Alias for compatibility with existing code
     // 初期状態で「今日のタスク」由来のもの（fromMission: true）を選択済みにする
     const [selectedTasks, setSelectedTasks] = useState(() => {
         return presets.filter(p => p.fromMission).map(p => ({

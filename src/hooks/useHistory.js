@@ -18,7 +18,9 @@ export default function useHistory() {
 
     // 今日の記録を追加/更新
     const recordToday = (tasks, schedule, completed = false) => {
-        const today = new Date().toISOString().split('T')[0];
+        // use local date
+        const d = new Date();
+        const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         const existingIndex = history.dailyRecords.findIndex(r => r.date === today);
 
         const record = {
@@ -46,7 +48,10 @@ export default function useHistory() {
         setHistory(prev => ({
             ...prev,
             achievements: [...prev.achievements, {
-                date: new Date().toISOString().split('T')[0],
+                date: (() => {
+                    const d = new Date();
+                    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                })(),
                 type,
                 title,
                 timestamp: Date.now()
@@ -64,7 +69,7 @@ export default function useHistory() {
     const getWeeklyData = () => {
         const today = new Date();
         const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-        const weekAgoStr = weekAgo.toISOString().split('T')[0];
+        const weekAgoStr = `${weekAgo.getFullYear()}-${String(weekAgo.getMonth() + 1).padStart(2, '0')}-${String(weekAgo.getDate()).padStart(2, '0')}`;
         return history.dailyRecords.filter(r => r.date >= weekAgoStr);
     };
 

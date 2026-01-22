@@ -5,6 +5,9 @@ export default function HistoryView({ history, getMonthlyData, getWeeklyData, ge
     const [activeTab, setActiveTab] = useState('calendar');
     const [currentMonth, setCurrentMonth] = useState(new Date());
 
+    // Debug logging
+    console.log('History Data:', history);
+
     const stats = getStats();
     const monthlyData = getMonthlyData(currentMonth.getFullYear(), currentMonth.getMonth());
     const weeklyData = getWeeklyData();

@@ -57,7 +57,17 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [hasShownCelebration, setHasShownCelebration] = useState(false);
+  const [currentSchedule, setCurrentSchedule] = useState([]);
   const [previousLevel, setPreviousLevel] = useState(level);
+
+  // Record history when data changes
+  useEffect(() => {
+    // Only record if we have meaningful data
+    if (todos.length > 0 || currentSchedule.length > 0) {
+      const isAllTasksCompleted = todos.length > 0 && todos.every(t => t.completed);
+      recordToday(todos, currentSchedule, isAllTasksCompleted);
+    }
+  }, [todos, currentSchedule, recordToday]);
 
   const evolutionStage = getEvolutionStage(level);
 
@@ -213,7 +223,14 @@ function App() {
         return (
           <div className="animate-pop" style={{ paddingTop: '1rem' }}>
             <h2 style={{ marginBottom: '1rem', fontSize: '1.3rem', color: 'var(--color-secondary)' }}>📅 スケジュール</h2>
-            <ScheduleWizard presets={combinedPresets} onAddPreset={addPreset} onUpdatePreset={updatePreset} level={level} />
+            <ScheduleWizard
+              presets={combinedPresets}
+              onAddPreset={addPreset}
+              onUpdatePreset={updatePreset}
+              level={level}
+              schedule={currentSchedule}
+              onScheduleChange={setCurrentSchedule}
+            />
           </div>
         );
       case 'social':
@@ -257,7 +274,7 @@ function App() {
     <div className="app-container" style={{ padding: '20px', paddingBottom: '100px' }}>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', height: '40px' }}>
         <h1 style={{ fontSize: '1.3rem', fontWeight: '900', color: 'var(--color-primary)', letterSpacing: '-0.5px', textShadow: '0 0 10px var(--color-primary)' }}>
-          SelfHero
+          Grow <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: 'var(--color-text-main)', marginLeft: '4px' }}>- 育てる習慣</span>
         </h1>
         <button
           onClick={() => setShowSettings(!showSettings)}
