@@ -54,26 +54,27 @@ export function useCharacterLevels(characterId, allCompleted, todosCount) {
     // Manual level up trigger (imperative)
     const attemptLevelUp = () => {
         const today = new Date().toDateString();
-        // Allow if standard checks pass OR if we are stuck at level 0 (force retry)
-        const isLevelZero = currentLevel === 0;
 
-        if ((canLevelUp && dailyLevelUp.characterId !== characterId) || isLevelZero) {
-            // Increment level using functional update
-            const newLevelStart = levels[characterId] || 0;
-            const nextLevel = newLevelStart + 1;
-
-            const newLevels = { ...levels, [characterId]: nextLevel };
-            setLevels(newLevels);
-            localStorage.setItem(LEVELS_KEY, JSON.stringify(newLevels));
-
-            // Mark this character as leveled up today
-            const newDaily = { date: today, characterId: characterId };
-            setDailyLevelUp(newDaily);
-            localStorage.setItem(DAILY_KEY, JSON.stringify(newDaily));
-
-            return true;
+        // Check if already leveled up today (any character)
+        if (dailyLevelUp.characterId !== null) {
+            console.log("Already leveled up today, skipping");
+            return false;
         }
-        return false;
+
+        // Increment level
+        const newLevelStart = levels[characterId] || 0;
+        const nextLevel = newLevelStart + 1;
+
+        const newLevels = { ...levels, [characterId]: nextLevel };
+        setLevels(newLevels);
+        localStorage.setItem(LEVELS_KEY, JSON.stringify(newLevels));
+
+        // Mark as leveled up today (blocks all further level ups today)
+        const newDaily = { date: today, characterId: characterId };
+        setDailyLevelUp(newDaily);
+        localStorage.setItem(DAILY_KEY, JSON.stringify(newDaily));
+
+        return true;
     };
 
     // New Day Reset Check
