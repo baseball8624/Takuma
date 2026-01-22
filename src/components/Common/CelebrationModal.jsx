@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { Star, Sparkles, Trophy, ArrowUp, X } from 'lucide-react';
+import { Star, Sparkles, Trophy, ArrowUp, X, Save, Copy } from 'lucide-react';
+import { createBackupString } from '../../utils/backupUtils';
 
 export default function CelebrationModal({ isOpen, onClose, character, level, isLevelUp }) {
     const [showContent, setShowContent] = useState(false);
     const [showLevel, setShowLevel] = useState(false);
+    const [showBackup, setShowBackup] = useState(false);
+    const [backupCode, setBackupCode] = useState('');
 
     useEffect(() => {
         if (isOpen) {
@@ -220,14 +223,100 @@ export default function CelebrationModal({ isOpen, onClose, character, level, is
             )}
 
             {/* Tap hint */}
-            <p style={{
-                marginTop: '32px',
-                color: 'rgba(255,255,255,0.4)',
-                fontSize: '0.8rem',
-                animation: 'fadeIn 0.5s ease 0.8s both'
-            }}>
-                タップして閉じる
-            </p>
+            {!showBackup && (
+                <p style={{
+                    marginTop: '32px',
+                    color: 'rgba(255,255,255,0.4)',
+                    fontSize: '0.8rem',
+                    animation: 'fadeIn 0.5s ease 0.8s both'
+                }}>
+                    タップして閉じる
+                </p>
+            )}
+
+            {/* Backup Section */}
+            {showContent && (
+                <div onClick={(e) => e.stopPropagation()} style={{ marginTop: '20px', width: '100%', maxWidth: '400px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    {!showBackup ? (
+                        <button
+                            onClick={() => {
+                                const code = createBackupString();
+                                setBackupCode(code);
+                                setShowBackup(true);
+                            }}
+                            style={{
+                                background: 'rgba(255,255,255,0.1)',
+                                border: '1px solid rgba(255,255,255,0.3)',
+                                padding: '10px 20px',
+                                borderRadius: '20px',
+                                color: 'white',
+                                fontSize: '0.9rem',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                animation: 'fadeIn 0.5s ease 1s both'
+                            }}
+                        >
+                            <Save size={16} />
+                            今日のデータを保存する
+                        </button>
+                    ) : (
+                        <div style={{
+                            background: 'rgba(20, 20, 30, 0.9)',
+                            padding: '16px',
+                            borderRadius: '16px',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            width: '100%',
+                            animation: 'fadeInUp 0.3s ease'
+                        }}>
+                            <p style={{ color: '#aaa', fontSize: '0.8rem', marginBottom: '8px' }}>
+                                以下のコードをコピーして保存してください：
+                            </p>
+                            <textarea
+                                readOnly
+                                value={backupCode}
+                                style={{
+                                    width: '100%',
+                                    height: '80px',
+                                    background: 'rgba(0,0,0,0.5)',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    borderRadius: '8px',
+                                    color: '#eee',
+                                    padding: '8px',
+                                    fontSize: '0.7rem',
+                                    fontFamily: 'monospace',
+                                    resize: 'none',
+                                    marginBottom: '8px'
+                                }}
+                            />
+                            <button
+                                onClick={() => {
+                                    navigator.clipboard.writeText(backupCode);
+                                    alert('コードをコピーしました！');
+                                }}
+                                style={{
+                                    width: '100%',
+                                    padding: '8px',
+                                    background: 'var(--color-primary)',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    color: 'white',
+                                    fontWeight: 'bold',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '6px'
+                                }}
+                            >
+                                <Copy size={16} />
+                                コードをコピー
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 }

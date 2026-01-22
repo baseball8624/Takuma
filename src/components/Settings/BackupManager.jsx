@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Save, Download, Upload, Check, Copy, AlertTriangle } from 'lucide-react';
+import { createBackupString, restoreFromBackupString } from '../../utils/backupUtils';
 
 export default function BackupManager({ onClose }) {
     const [backupCode, setBackupCode] = useState('');
@@ -7,36 +8,14 @@ export default function BackupManager({ onClose }) {
     const [mode, setMode] = useState('menu'); // 'menu', 'export', 'import'
     const [status, setStatus] = useState(''); // 'success', 'error', 'copied'
 
-    // アプリで使用しているlocalStorageのキー接頭辞
-    const PREFIXT_LIST = [
-        'self_hero_', // アプリ全体
-    ];
-
     // 全データを取得してコード化
     const handleExport = () => {
-        try {
-            const data = {};
-            // localStorageから関連データを収集
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (PREFIXT_LIST.some(prefix => key.startsWith(prefix))) {
-                    data[key] = localStorage.getItem(key);
-                }
-            }
-
-            const backupData = {
-                version: 1,
-                timestamp: new Date().toISOString(),
-                data: data
-            };
-
-            // Base64にエンコード（簡易的な難読化）
-            const jsonString = JSON.stringify(backupData);
-            const encoded = btoa(unescape(encodeURIComponent(jsonString)));
+        const encoded = createBackupString();
+        if (encoded) {
             setBackupCode(encoded);
             setMode('export');
-        } catch (e) {
-            console.error('Export failed:', e);
+        } else {
+            console.error('Export failed');
             setStatus('error');
         }
     };
@@ -57,26 +36,11 @@ export default function BackupManager({ onClose }) {
             return;
         }
 
-        try {
-            // デコード
-            const jsonString = decodeURIComponent(escape(atob(importCode)));
-            const backupData = JSON.parse(jsonString);
-
-            // 検証
-            if (!backupData.version || !backupData.data) {
-                throw new Error('Invalid backup format');
-            }
-
-            // 復元実行
-            Object.entries(backupData.data).forEach(([key, value]) => {
-                localStorage.setItem(key, value);
-            });
-
+        const success = restoreFromBackupString(importCode);
+        if (success) {
             alert('データの復元が完了しました！アプリを再読み込みします。');
             window.location.reload();
-
-        } catch (e) {
-            console.error('Import failed:', e);
+        } else {
             alert('復元に失敗しました。コードが正しいか確認してください。');
             setStatus('error');
         }

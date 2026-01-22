@@ -341,35 +341,8 @@ function App() {
               </button>
             </div>
 
-            {/* Font Selection */}
-            <div style={{ marginBottom: '1.5rem' }}>
-              <h4 style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Type size={16} /> フォント
-              </h4>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {availableFonts.map(f => (
-                  <button
-                    key={f.id}
-                    onClick={() => setFontId(f.id)}
-                    style={{
-                      padding: '8px 12px',
-                      background: font.id === f.id ? 'var(--color-primary)' : 'rgba(255,255,255,0.1)',
-                      border: font.id === f.id ? '2px solid white' : '2px solid transparent',
-                      borderRadius: '4px',
-                      color: 'white',
-                      cursor: 'pointer',
-                      fontFamily: f.family,
-                      fontSize: '0.9rem'
-                    }}
-                  >
-                    {f.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* Character Selection with individual levels */}
-            <div>
+            <div style={{ marginBottom: '1.5rem' }}>
               <h4 style={{ marginBottom: '8px' }}>コーチ選択</h4>
               {todayLeveledCharacter && (
                 <p style={{ fontSize: '0.75rem', color: '#888', marginBottom: '10px' }}>
@@ -427,6 +400,33 @@ function App() {
                     </div>
                   );
                 })}
+              </div>
+            </div>
+
+            {/* Font Selection */}
+            <div style={{ marginBottom: '1.5rem' }}>
+              <h4 style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Type size={16} /> フォント
+              </h4>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {availableFonts.map(f => (
+                  <button
+                    key={f.id}
+                    onClick={() => setFontId(f.id)}
+                    style={{
+                      padding: '8px 12px',
+                      background: font.id === f.id ? 'var(--color-primary)' : 'rgba(255,255,255,0.1)',
+                      border: font.id === f.id ? '2px solid white' : '2px solid transparent',
+                      borderRadius: '4px',
+                      color: 'white',
+                      cursor: 'pointer',
+                      fontFamily: f.family,
+                      fontSize: '0.9rem'
+                    }}
+                  >
+                    {f.name}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
