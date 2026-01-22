@@ -17,6 +17,7 @@ import NotificationSettings from './components/Settings/NotificationSettings';
 import BottomNav from './components/Common/BottomNav';
 import CelebrationModal from './components/Common/CelebrationModal';
 import LoadingScreen from './components/LoadingScreen';
+import BackupManager from './components/Settings/BackupManager';
 import { Settings, Sparkles, Type, Trophy, Lock, History, Bell } from 'lucide-react';
 
 // Evolution stages based on level
@@ -56,6 +57,7 @@ function App() {
 
   const [activeTab, setActiveTab] = useState('home');
   const [showSettings, setShowSettings] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [hasShownCelebration, setHasShownCelebration] = useState(false);
   const [currentSchedule, setCurrentSchedule] = useState([]);
@@ -309,6 +311,36 @@ function App() {
               <button onClick={() => setShowSettings(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
             </div>
 
+            {/* Data Management */}
+            <div style={{ marginBottom: '1.5rem', padding: '10px', background: 'rgba(78, 205, 196, 0.1)', borderRadius: '8px', border: '1px solid var(--color-primary)' }}>
+              <h4 style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-primary)' }}>
+                <Settings size={16} /> データ管理
+              </h4>
+              <button
+                onClick={() => {
+                  setShowSettings(false);
+                  setShowSettingsModal(true);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  background: 'linear-gradient(to right, #4ECDC4, #556270)',
+                  border: 'none',
+                  borderRadius: '6px',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                <Settings size={16} />
+                バックアップと復元
+              </button>
+            </div>
+
             {/* Font Selection */}
             <div style={{ marginBottom: '1.5rem' }}>
               <h4 style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -405,6 +437,28 @@ function App() {
         </main>
 
         <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+
+
+        {/* Settings Modal (Backup) */}
+        {showSettingsModal && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backdropFilter: 'blur(5px)'
+          }}>
+            <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+              <BackupManager onClose={() => setShowSettingsModal(false)} />
+            </div>
+          </div>
+        )}
 
         {/* Celebration Modal */}
         <CelebrationModal
