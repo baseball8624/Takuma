@@ -1,7 +1,149 @@
-import React, { useState, useMemo } from 'react';
-import { Clock, RefreshCcw, Plus, Trash2, Edit3, PieChart, Palette, Save, Star } from 'lucide-react';
+import { Clock, RefreshCcw, Plus, Trash2, Edit3, PieChart, Palette, Save, Star, GripVertical, Settings2, Sliders } from 'lucide-react';
 import { useCharacter } from '../../hooks/useCharacter';
 import { useScheduleTemplates } from '../../hooks/useScheduleTemplates';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, TouchSensor } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+// Sortable Item Component
+const SortableTaskItem = ({ id, item, idx, isEditing, editingPresetId, setEditingPresetId, updateScheduleItem, deleteScheduleItem, adjustDuration, scheduleLength }) => {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 100 : 1,
+        position: 'relative',
+        opacity: isDragging ? 0.8 : 1,
+    };
+
+    return (
+        <div ref={setNodeRef} style={style} {...attributes}>
+            <div style={{
+                display: 'flex', flexDirection: 'column', gap: '4px',
+                padding: '8px',
+                background: editingPresetId === `item-${idx}` ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.03)',
+                borderRadius: '8px',
+                borderLeft: `4px solid ${item.color}`,
+                marginBottom: '8px',
+                boxShadow: isDragging ? '0 10px 20px rgba(0,0,0,0.5)' : 'none'
+            }}>
+                <div
+                    onClick={() => {
+                        if (item.type !== 'system') {
+                            setEditingPresetId(editingPresetId === `item-${idx}` ? null : `item-${idx}`);
+                        }
+                    }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: item.type !== 'system' ? 'pointer' : 'default' }}
+                >
+                    {/* Drag Handle (Long Press) */}
+                    <div
+                        {...listeners}
+                        style={{ color: '#555', cursor: 'grab', touchAction: 'none', padding: '4px' }}
+                    >
+                        <GripVertical size={18} />
+                    </div>
+
+                    <span style={{ color: 'var(--color-accent)', minWidth: '45px', fontFamily: 'monospace', fontSize: '0.85rem' }}>{item.time}</span>
+
+                    {isEditing && item.editable ? (
+                        <input
+                            type="text"
+                            value={item.title}
+                            onChange={e => updateScheduleItem(idx, 'title', e.target.value)}
+                            onClick={e => e.stopPropagation()}
+                            style={{ flex: 1, padding: '6px', borderRadius: '4px', border: '1px solid #555', background: '#000', color: 'white', fontFamily: 'inherit', fontSize: '0.9rem' }}
+                        />
+                    ) : (
+                        <span style={{ flex: 1, fontSize: '0.9rem', color: item.type === 'system' ? '#888' : 'white', fontWeight: '500' }}>{item.title}</span>
+                    )}
+
+                    {item.duration > 0 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '0.75rem', color: '#888', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '12px' }}>
+                                {item.duration}分
+                            </span>
+                            {item.editable && (
+                                <div style={{ color: editingPresetId === `item-${idx}` ? 'var(--color-primary)' : '#555' }}>
+                                    <Sliders size={16} />
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                {/* 詳細編集・調整用パネル */}
+                {(editingPresetId === `item-${idx}` || isEditing) && item.editable && (
+                    <div style={{
+                        marginTop: '8px',
+                        paddingTop: '8px',
+                        borderTop: '1px solid rgba(255,255,255,0.1)',
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: '8px',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        animation: 'fadeIn 0.2s ease'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '0.7rem', color: '#888' }}>時間調整:</span>
+                            <div style={{ display: 'flex', gap: '4px' }}>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); adjustDuration(idx, -15); }}
+                                    style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid #555', borderRadius: '4px', color: 'white', width: '36px', height: '30px', cursor: 'pointer', fontSize: '0.75rem' }}
+                                >
+                                    -15
+                                </button>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); adjustDuration(idx, -5); }}
+                                    style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid #555', borderRadius: '4px', color: 'white', width: '36px', height: '30px', cursor: 'pointer', fontSize: '0.75rem' }}
+                                >
+                                    -5
+                                </button>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); adjustDuration(idx, +5); }}
+                                    style={{ background: 'var(--color-primary)', border: 'none', borderRadius: '4px', color: 'white', width: '36px', height: '30px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}
+                                >
+                                    +5
+                                </button>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); adjustDuration(idx, +15); }}
+                                    style={{ background: 'var(--color-primary)', border: 'none', borderRadius: '4px', color: 'white', width: '36px', height: '30px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}
+                                >
+                                    +15
+                                </button>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                            {/* Color picker for schedule item */}
+                            <div style={{ display: 'flex', gap: '2px', marginRight: '8px', alignItems: 'center' }}>
+                                {AVAILABLE_COLORS.slice(0, 5).map(c => (
+                                    <button key={c.id} onClick={() => updateScheduleItem(idx, 'color', c.color)}
+                                        style={{ width: '20px', height: '20px', background: c.color, border: item.color === c.color ? '2px solid white' : 'none', borderRadius: '50%', cursor: 'pointer' }} />
+                                ))}
+                            </div>
+
+                            <button
+                                onClick={() => deleteScheduleItem(idx)}
+                                style={{ background: 'rgba(255,100,100,0.1)', border: '1px solid #ff6b6b', borderRadius: '4px', padding: '4px 12px', color: '#ff6b6b', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                            >
+                                <Trash2 size={14} /> 削除
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
 
 // Color palette for tasks (user can pick from these)
 const AVAILABLE_COLORS = [
@@ -138,6 +280,37 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
             setNewTemplateName('');
             setShowSaveInput(false);
             alert('テンプレートを保存しました！');
+        }
+    };
+
+    // DnD Sensors
+    const sensors = useSensors(
+        useSensor(PointerSensor),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        }),
+        useSensor(TouchSensor, {
+            activationConstraint: {
+                delay: 200, // 長押し200msで発火
+                tolerance: 5,
+            },
+        })
+    );
+
+    const handleDragEnd = (event) => {
+        const { active, over } = event;
+
+        if (active.id !== over.id) {
+            setSchedule((items) => {
+                const oldIndex = items.findIndex((item) => item.id === active.id);
+                const newIndex = items.findIndex((item) => item.id === over.id);
+
+                // 配列を並べ替え
+                const newItems = arrayMove(items, oldIndex, newIndex);
+
+                // 時間を再計算して返す
+                return recalculateSchedule(newItems);
+            });
         }
     };
 
@@ -1100,110 +1273,47 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
 
                     {showChart && renderPieChart()}
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '1rem', maxHeight: '300px', overflowY: 'auto' }}>
-                        {schedule.map((item, idx) => (
-                            <div key={idx} style={{
-                                display: 'flex', flexDirection: 'column', gap: '4px',
-                                padding: '8px',
-                                background: editingPresetId === `item-${idx}` ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.03)',
-                                borderRadius: '4px',
-                                borderLeft: `4px solid ${item.color}`,
-                                transition: 'all 0.2s'
-                            }}>
-                                <div
-                                    onClick={() => item.type !== 'system' && setEditingPresetId(editingPresetId === `item-${idx}` ? null : `item-${idx}`)}
-                                    style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: item.type !== 'system' ? 'pointer' : 'default' }}
-                                >
-                                    <span style={{ color: 'var(--color-accent)', minWidth: '50px', fontFamily: 'monospace', fontSize: '0.85rem' }}>{item.time}</span>
-                                    {isEditing && item.editable ? (
-                                        <input
-                                            type="text"
-                                            value={item.title}
-                                            onChange={e => updateScheduleItem(idx, 'title', e.target.value)}
-                                            onClick={e => e.stopPropagation()}
-                                            style={{ flex: 1, padding: '4px 8px', borderRadius: '4px', border: '1px solid #555', background: '#000', color: 'white', fontFamily: 'inherit', fontSize: '0.85rem' }}
+                    <div style={{ marginBottom: '1rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', padding: '0 4px' }}>
+                            <span style={{ fontSize: '0.75rem', color: '#888' }}>
+                                <GripVertical size={12} style={{ display: 'inline', verticalAlign: 'middle' }} /> 長押しで移動 / タップで調整
+                            </span>
+                        </div>
+
+                        <DndContext
+                            sensors={sensors}
+                            collisionDetection={closestCenter}
+                            onDragEnd={handleDragEnd}
+                        >
+                            <SortableContext
+                                items={schedule.map(item => item.id)}
+                                strategy={verticalListSortingStrategy}
+                            >
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0', maxHeight: '400px', overflowY: 'auto', paddingRight: '4px' }}>
+                                    {schedule.map((item, idx) => (
+                                        <SortableTaskItem
+                                            key={item.id} // use unique id here, assuming system items also have unique ids
+                                            id={item.id}
+                                            item={item}
+                                            idx={idx}
+                                            isEditing={isEditing}
+                                            editingPresetId={editingPresetId}
+                                            setEditingPresetId={setEditingPresetId}
+                                            updateScheduleItem={updateScheduleItem}
+                                            deleteScheduleItem={deleteScheduleItem}
+                                            adjustDuration={adjustDuration}
+                                            // moveScheduleItem={moveScheduleItem} // Removed as DND handles this
+                                            scheduleLength={schedule.length}
                                         />
-                                    ) : (
-                                        <span style={{ flex: 1, fontSize: '0.85rem', color: item.type === 'system' ? '#888' : 'white' }}>{item.title}</span>
-                                    )}
-
-                                    {item.duration > 0 && (
-                                        <span style={{ fontSize: '0.7rem', color: '#666', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '10px' }}>
-                                            {item.duration}分
-                                        </span>
-                                    )}
+                                    ))}
                                 </div>
-
-                                {/* 詳細編集・調整用パネル */}
-                                {(editingPresetId === `item-${idx}` || isEditing) && item.editable && (
-                                    <div style={{
-                                        marginTop: '4px',
-                                        paddingTop: '4px',
-                                        borderTop: '1px solid rgba(255,255,255,0.1)',
-                                        display: 'flex',
-                                        flexWrap: 'wrap',
-                                        gap: '8px',
-                                        alignItems: 'center',
-                                        justifyContent: 'space-between'
-                                    }}>
-                                        <div style={{ display: 'flex', gap: '4px' }}>
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); adjustDuration(idx, -15); }}
-                                                style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid #555', borderRadius: '4px', color: 'white', width: '32px', cursor: 'pointer', fontSize: '0.7rem' }}
-                                            >
-                                                -15
-                                            </button>
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); adjustDuration(idx, -5); }}
-                                                style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid #555', borderRadius: '4px', color: 'white', width: '32px', cursor: 'pointer', fontSize: '0.7rem' }}
-                                            >
-                                                -5
-                                            </button>
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); adjustDuration(idx, +5); }}
-                                                style={{ background: 'var(--color-primary)', border: 'none', borderRadius: '4px', color: 'white', width: '32px', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 'bold' }}
-                                            >
-                                                +5
-                                            </button>
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); adjustDuration(idx, +15); }}
-                                                style={{ background: 'var(--color-primary)', border: 'none', borderRadius: '4px', color: 'white', width: '32px', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 'bold' }}
-                                            >
-                                                +15
-                                            </button>
-                                        </div>
-
-                                        <div style={{ display: 'flex', gap: '4px' }}>
-                                            <button
-                                                onClick={() => moveScheduleItem(idx, 'up')}
-                                                disabled={idx === 0}
-                                                style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '4px', padding: '4px 8px', color: '#ccc', cursor: idx === 0 ? 'default' : 'pointer' }}
-                                            >
-                                                ↑
-                                            </button>
-                                            <button
-                                                onClick={() => moveScheduleItem(idx, 'down')}
-                                                disabled={idx === schedule.length - 1}
-                                                style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '4px', padding: '4px 8px', color: '#ccc', cursor: idx === schedule.length - 1 ? 'default' : 'pointer' }}
-                                            >
-                                                ↓
-                                            </button>
-                                            <button
-                                                onClick={() => deleteScheduleItem(idx)}
-                                                style={{ background: 'rgba(255,100,100,0.2)', border: 'none', borderRadius: '4px', padding: '4px 8px', color: '#ff6b6b', cursor: 'pointer' }}
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        ))}
+                            </SortableContext>
+                        </DndContext>
                     </div>
 
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                         <button onClick={() => setIsEditing(!isEditing)} className="btn btn-secondary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.85rem' }}>
-                            <Edit3 size={14} /> {isEditing ? '完了' : '編集'}
+                            <Edit3 size={14} /> {isEditing ? '完了' : 'タイトル編集'}
                         </button>
                         <button onClick={generateSchedule} className="btn btn-secondary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.85rem' }}>
                             <RefreshCcw size={14} /> 再生成
