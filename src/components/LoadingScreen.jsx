@@ -11,9 +11,8 @@ export default function LoadingScreen({ allCharacters, onFinish }) {
         const randomCharKey = charKeys[Math.floor(Math.random() * charKeys.length)];
         const character = allCharacters[randomCharKey];
 
-        // ランダムなレベル（画像）を選択 (1, 7, 30, 100)
-        const levels = [1, 7, 30, 100];
-        const randomLevel = levels[Math.floor(Math.random() * levels.length)];
+        // ランダムなレベル（画像）を選択 (ユーザー要望により第一形態のみ)
+        const randomLevel = 1;
         const image = character.images[randomLevel] || character.fallbackImage;
 
         // ランダムなメッセージを選択
