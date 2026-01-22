@@ -536,8 +536,9 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
         if (isWorker || isStudent) {
             selectedTasks.forEach((task, idx) => {
                 const taskDuration = roundTo15Min(task.duration) || 15;
+                const uniqueId = `task-${task.id}-eve-${idx}-${generateId()}`;
                 items.push({
-                    id: `task-${task.id}-eve-${idx}`,
+                    id: uniqueId,
                     time: formatTime(currentMinutes),
                     title: task.name,
                     duration: taskDuration,
