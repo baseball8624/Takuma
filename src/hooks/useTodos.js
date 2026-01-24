@@ -69,9 +69,36 @@ export function useTodos() {
     return Math.round((completedCount / todos.length) * 100);
   };
 
-  const clearCompleted = () => {
-    setTodos(todos.filter(t => !t.completed));
-  }
+  const reorderTodos = (activeId, overId) => {
+    setTodos(prevTodos => {
+      const oldIndex = prevTodos.findIndex(t => t.id === activeId);
+      const newIndex = prevTodos.findIndex(t => t.id === overId);
+
+      if (oldIndex === -1 || newIndex === -1) return prevTodos;
+
+      const result = [...prevTodos];
+      const [removed] = result.splice(oldIndex, 1);
+      result.splice(newIndex, 0, removed);
+      return result;
+    });
+  };
+
+  const updateTodo = (id, newText) => {
+    setTodos(todos.map(t => t.id === id ? { ...t, text: newText } : t));
+  };
+
+  const moveTodo = (id, direction) => {
+    const index = todos.findIndex(t => t.id === id);
+    if (index === -1) return;
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === todos.length - 1) return;
+
+    const newTodos = [...todos];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+
+    [newTodos[index], newTodos[targetIndex]] = [newTodos[targetIndex], newTodos[index]];
+    setTodos(newTodos);
+  };
 
   return {
     todos,
@@ -79,6 +106,8 @@ export function useTodos() {
     toggleTodo,
     deleteTodo,
     getProgress,
-    clearCompleted
+    reorderTodos,
+    updateTodo,
+    moveTodo
   };
 }

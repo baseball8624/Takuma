@@ -36,7 +36,7 @@ function getEvolutionStage(level) {
 }
 
 function App() {
-  const { todos, addTodo, toggleTodo, deleteTodo, getProgress } = useTodos();
+  const { todos, addTodo, toggleTodo, deleteTodo, getProgress, reorderTodos, updateTodo, moveTodo } = useTodos();
   const progress = getProgress();
   const allCompleted = todos.length > 0 && todos.every(t => t.completed);
 
@@ -49,7 +49,7 @@ function App() {
   // Now get character with evolved image based on level
   const { character, setCharacterId, currentDialogue, triggerReaction, availableCharacters, getCharacterForLevel } = useCharacter(progress, level);
 
-  const { presets, addPreset, updatePreset } = useTaskPresets();
+  const { presets, addPreset, updatePreset, reorderPresets } = useTaskPresets();
   const { font, setFontId, availableFonts } = useFont();
   const { history, recordToday, recordAchievement, getMonthlyData, getWeeklyData, getStats } = useHistory();
   const notifications = useNotifications(character?.displayName || character?.name);
@@ -180,10 +180,14 @@ function App() {
                 </span>
               </div>
               <TodoList
+                key="todo-list-v2"
                 todos={todos}
                 onAdd={addTodo}
                 onToggle={handleTaskComplete}
                 onDelete={deleteTodo}
+                onReorder={reorderTodos}
+                onUpdate={updateTodo}
+                onMove={moveTodo}
                 progress={progress}
               />
             </div>
@@ -220,6 +224,7 @@ function App() {
               presets={combinedPresets}
               onAddPreset={addPreset}
               onUpdatePreset={updatePreset}
+              onReorderPresets={reorderPresets}
               level={level}
               schedule={currentSchedule}
               onScheduleChange={setCurrentSchedule}

@@ -57,10 +57,25 @@ export function useTaskPresets() {
         setPresets(presets.map(p => p.id === id ? { ...p, ...updates } : p));
     };
 
+    const reorderPresets = (activeId, overId) => {
+        setPresets(prevPresets => {
+            const oldIndex = prevPresets.findIndex(p => p.id === activeId);
+            const newIndex = prevPresets.findIndex(p => p.id === overId);
+
+            if (oldIndex === -1 || newIndex === -1) return prevPresets;
+
+            const result = [...prevPresets];
+            const [removed] = result.splice(oldIndex, 1);
+            result.splice(newIndex, 0, removed);
+            return result;
+        });
+    };
+
     return {
         presets,
         addPreset,
         deletePreset,
-        updatePreset
+        updatePreset,
+        reorderPresets
     };
 }

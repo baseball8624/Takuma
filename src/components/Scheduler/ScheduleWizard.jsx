@@ -2,8 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { Clock, RefreshCcw, Plus, Trash2, Edit3, PieChart, Palette, Save, Star, GripVertical, Settings2, Sliders } from 'lucide-react';
 import { useCharacter } from '../../hooks/useCharacter';
 import { useScheduleTemplates } from '../../hooks/useScheduleTemplates';
-import { DndContext, closestCenter, KeyboardSensor, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { DndContext, closestCenter, closestCorners, KeyboardSensor, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
 // Sortable Item Component
@@ -146,6 +146,104 @@ const SortableTaskItem = ({ id, item, idx, isEditing, editingPresetId, setEditin
     );
 };
 
+// Sortable Preset Item Component
+const SortablePresetItem = ({ preset, isSelected, toggleTaskSelection, setEditingPresetId, editingPresetId, handleUpdatePresetColor }) => {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({
+        id: preset.id,
+        disabled: preset.fromMission // ミッション由来の項目は並べ替え不可
+    });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 100 : 1,
+        position: 'relative',
+        opacity: isDragging ? 0.8 : 1,
+        touchAction: 'none'
+    };
+
+    const displayDuration = roundTo15Min(preset.duration) || 15;
+    const presetColor = preset.color || AVAILABLE_COLORS[0].color;
+
+    return (
+        <div ref={setNodeRef} style={style} {...attributes}>
+            <div style={{ position: 'relative' }}>
+                <button
+                    onClick={() => toggleTaskSelection(preset)}
+                    onContextMenu={(e) => { e.preventDefault(); setEditingPresetId(preset.id); }}
+                    {...listeners}
+                    style={{
+                        padding: '8px 12px',
+                        background: isSelected ? presetColor : 'rgba(255,255,255,0.1)',
+                        border: isSelected ? '2px solid white' : `2px solid ${presetColor}`,
+                        borderRadius: '4px',
+                        color: 'white',
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                        fontFamily: 'inherit',
+                        boxShadow: isSelected ? '2px 2px 0 rgba(0,0,0,0.3)' : 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        width: 'max-content'
+                    }}
+                >
+                    <div style={{ width: '12px', height: '12px', background: presetColor, borderRadius: '2px', border: '1px solid rgba(255,255,255,0.5)' }} />
+                    {preset.name} ({displayDuration}分)
+                </button>
+
+                {/* Color picker popup */}
+                {editingPresetId === preset.id && (
+                    <div style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        background: 'var(--color-bg-card)',
+                        border: '2px solid white',
+                        borderRadius: '8px',
+                        padding: '8px',
+                        zIndex: 100,
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: '4px',
+                        width: '150px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
+                    }}>
+                        {AVAILABLE_COLORS.map(c => (
+                            <button
+                                key={c.id}
+                                onClick={() => handleUpdatePresetColor(preset.id, c.color)}
+                                style={{
+                                    width: '28px',
+                                    height: '28px',
+                                    background: c.color,
+                                    border: preset.color === c.color ? '2px solid white' : '2px solid transparent',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer'
+                                }}
+                                title={c.name}
+                            />
+                        ))}
+                        <button
+                            onClick={() => setEditingPresetId(null)}
+                            style={{ width: '100%', marginTop: '4px', padding: '4px', background: '#555', border: 'none', borderRadius: '4px', color: 'white', fontSize: '0.7rem', cursor: 'pointer' }}
+                        >
+                            閉じる
+                        </button>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
 // Color palette for tasks (user can pick from these)
 const AVAILABLE_COLORS = [
     { id: 'red', color: '#FF6B6B', name: '赤' },
@@ -257,7 +355,7 @@ const formatTime = (totalMinutes) => {
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 };
 
-export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePreset, level = 1, schedule = [], onScheduleChange }) {
+export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePreset, onReorderPresets, level = 1, schedule = [], onScheduleChange }) {
     const { character, triggerReaction, currentDialogue } = useCharacter(0, level);
     const [wakeTime, setWakeTime] = useState('07:00');
     const [bedTime, setBedTime] = useState('23:00');
@@ -328,6 +426,21 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
                 // 時間を再計算して返す
                 return recalculateSchedule(newItems);
             });
+        }
+    };
+
+    const handlePresetDragEnd = (event) => {
+        const { active, over } = event;
+        if (over && active.id !== over.id) {
+            // ミッション由来の項目はスキップ（Sortableでdisabledにしているが念のため）
+            const activePreset = presets.find(p => p.id === active.id);
+            const overPreset = presets.find(p => p.id === over.id);
+
+            if (activePreset && overPreset && !activePreset.fromMission && !overPreset.fromMission) {
+                if (onReorderPresets) {
+                    onReorderPresets(active.id, over.id);
+                }
+            }
         }
     };
 
@@ -1167,80 +1280,30 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
                         <label style={{ fontSize: '0.8rem', color: 'var(--color-accent)', display: 'block', marginBottom: '8px' }}>
                             📋 やることリスト（タップで選択・長押しで色変更）
                         </label>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                            {presets.map(preset => {
-                                const isSelected = selectedTasks.find(t => t.id === preset.id);
-                                const displayDuration = roundTo15Min(preset.duration) || 15;
-                                const presetColor = preset.color || AVAILABLE_COLORS[0].color;
-
-                                return (
-                                    <div key={preset.id} style={{ position: 'relative' }}>
-                                        <button
-                                            onClick={() => toggleTaskSelection(preset)}
-                                            onContextMenu={(e) => { e.preventDefault(); setEditingPresetId(preset.id); }}
-                                            style={{
-                                                padding: '8px 12px',
-                                                background: isSelected ? presetColor : 'rgba(255,255,255,0.1)',
-                                                border: isSelected ? '2px solid white' : `2px solid ${presetColor}`,
-                                                borderRadius: '4px',
-                                                color: 'white',
-                                                fontSize: '0.85rem',
-                                                cursor: 'pointer',
-                                                fontFamily: 'inherit',
-                                                boxShadow: isSelected ? '2px 2px 0 rgba(0,0,0,0.3)' : 'none',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '6px'
-                                            }}
-                                        >
-                                            <div style={{ width: '12px', height: '12px', background: presetColor, borderRadius: '2px', border: '1px solid rgba(255,255,255,0.5)' }} />
-                                            {preset.name} ({displayDuration}分)
-                                        </button>
-
-                                        {/* Color picker popup */}
-                                        {editingPresetId === preset.id && (
-                                            <div style={{
-                                                position: 'absolute',
-                                                top: '100%',
-                                                left: 0,
-                                                background: 'var(--color-bg-card)',
-                                                border: '2px solid white',
-                                                borderRadius: '8px',
-                                                padding: '8px',
-                                                zIndex: 100,
-                                                display: 'flex',
-                                                flexWrap: 'wrap',
-                                                gap: '4px',
-                                                width: '150px',
-                                                boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
-                                            }}>
-                                                {AVAILABLE_COLORS.map(c => (
-                                                    <button
-                                                        key={c.id}
-                                                        onClick={() => handleUpdatePresetColor(preset.id, c.color)}
-                                                        style={{
-                                                            width: '28px',
-                                                            height: '28px',
-                                                            background: c.color,
-                                                            border: preset.color === c.color ? '2px solid white' : '2px solid transparent',
-                                                            borderRadius: '4px',
-                                                            cursor: 'pointer'
-                                                        }}
-                                                        title={c.name}
-                                                    />
-                                                ))}
-                                                <button
-                                                    onClick={() => setEditingPresetId(null)}
-                                                    style={{ width: '100%', marginTop: '4px', padding: '4px', background: '#555', border: 'none', borderRadius: '4px', color: 'white', fontSize: '0.7rem', cursor: 'pointer' }}
-                                                >
-                                                    閉じる
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
+                        <DndContext
+                            sensors={sensors}
+                            collisionDetection={closestCorners}
+                            onDragEnd={handlePresetDragEnd}
+                        >
+                            <SortableContext
+                                items={presets.map(p => p.id)}
+                                strategy={rectSortingStrategy}
+                            >
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                    {presets.map(preset => (
+                                        <SortablePresetItem
+                                            key={preset.id}
+                                            preset={preset}
+                                            isSelected={!!selectedTasks.find(t => t.id === preset.id)}
+                                            toggleTaskSelection={toggleTaskSelection}
+                                            setEditingPresetId={setEditingPresetId}
+                                            editingPresetId={editingPresetId}
+                                            handleUpdatePresetColor={handleUpdatePresetColor}
+                                        />
+                                    ))}
+                                </div>
+                            </SortableContext>
+                        </DndContext>
 
                         {/* Add new preset with color picker */}
                         <div style={{ marginTop: '12px', padding: '10px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
@@ -1305,7 +1368,7 @@ export default function ScheduleWizard({ presets = [], onAddPreset, onUpdatePres
 
                         <DndContext
                             sensors={sensors}
-                            collisionDetection={closestCenter}
+                            collisionDetection={closestCorners}
                             onDragEnd={handleDragEnd}
                         >
                             <SortableContext

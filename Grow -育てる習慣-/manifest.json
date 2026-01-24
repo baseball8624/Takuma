@@ -1,0 +1,29 @@
+{
+    "name": "Grow - 育てる習慣",
+    "short_name": "Grow 育てる習慣",
+    "description": "キャラクターを育てながら良い習慣を身につけるアプリ",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#0f0f1a",
+    "theme_color": "#FF2E63",
+    "orientation": "portrait",
+    "icons": [
+        {
+            "src": "/pwa-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/pwa-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "categories": [
+        "productivity",
+        "lifestyle",
+        "games"
+    ]
+}
