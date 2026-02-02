@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>データ修復ツール</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .status {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+
+        .restore-btn {
+            background: linear-gradient(135deg, #4ECDC4, #2ECC71);
+            color: white;
+        }
+
+        .check-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .goto-btn {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #333;
+        }
+
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .success {
+            color: #2ECC71;
+        }
+
+        .error {
+            color: #E74C3C;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔧 Growデータ修復ツール</h1>
+
+        <div class="status">
+            <p>このページで履歴データを修復します。</p>
+            <p><strong>達成記録：</strong> 8日間（1/22, 1/23, 1/25, 1/26, 1/28, 1/29, 1/31, 2/1）</p>
+            <p><strong>ボルト：</strong> レベル9</p>
+        </div>
+
+        <button class="restore-btn" onclick="restoreData()">📥 データを修復する</button>
+        <button class="check-btn" onclick="checkData()">🔍 現在のデータを確認</button>
+        <button class="goto-btn" onclick="goToApp()">🚀 アプリを開く</button>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function restoreData() {
+            try {
+                // 履歴データ（達成記録含む）
+                const historyData = {
+                    dailyRecords: [
+                        { date: '2026-01-22', completed: true, tasks: [{ text: '英語を勉強する' }, { text: '日記を書く' }, { text: 'ビジネスの勉強をする' }, { text: '読書15ページ' }, { text: 'SNS投稿をする' }, { text: '散歩をする' }], schedule: [], timestamp: 1769091857082 },
+                        { date: '2026-01-23', completed: true, tasks: [{ text: '英語を勉強する' }, { text: '日記を書く' }, { text: 'ビジネスの勉強をする' }, { text: '読書15ページ' }, { text: 'SNS投稿をする' }, { text: '散歩をする' }], schedule: [], timestamp: 1769172014062 },
+                        { date: '2026-01-24', completed: false, tasks: [{ text: '散歩をする' }], schedule: [], timestamp: 1769265417983 },
+                        { date: '2026-01-25', completed: true, tasks: [{ text: '散歩をする' }, { text: '英語を勉強する' }], schedule: [], timestamp: 1769349990539 },
+                        { date: '2026-01-26', completed: true, tasks: [{ text: '散歩をする' }, { text: '英語を勉強する' }], schedule: [], timestamp: 1769439433955 },
+                        { date: '2026-01-27', completed: false, tasks: [{ text: '散歩をする' }], schedule: [], timestamp: 1769521899311 },
+                        { date: '2026-01-28', completed: true, tasks: [{ text: '散歩をする' }, { text: '読書15ページ' }], schedule: [], timestamp: 1769608387619 },
+                        { date: '2026-01-29', completed: true, tasks: [{ text: '散歩をする' }, { text: '読書15ページ' }], schedule: [], timestamp: 1769694820000 },
+                        { date: '2026-01-30', completed: false, tasks: [{ text: 'あ' }], schedule: [], timestamp: 1769702020924 },
+                        { date: '2026-01-31', completed: true, tasks: [{ text: '散歩をする' }, { text: '読書15ページ' }], schedule: [], timestamp: 1769788800000 },
+                        { date: '2026-02-01', completed: true, tasks: [{ text: '散歩をする' }, { text: '読書15ページ' }], schedule: [], timestamp: 1769875200000 },
+                        { date: '2026-02-02', completed: false, tasks: [{ text: '散歩をする' }], schedule: [], timestamp: 1770018507231 }
+                    ],
+                    achievements: [],
+                    streakHistory: []
+                };
+
+                // キャラクターレベル
+                const characterLevels = { angel: 1, ignis: 1, aquel: 1, bolt: 9 };
+
+                // Todoリスト
+                const todos = [
+                    { id: '1769091552664', text: '散歩をする', completed: true, createdAt: '2026-01-22T14:19:12.664Z' },
+                    { id: '1769091525226', text: '読書15ページ', completed: false, createdAt: '2026-01-22T14:18:45.226Z' },
+                    { id: '1769221626511', text: 'ビジネスの勉強をする', completed: false, createdAt: '2026-01-24T02:27:06.511Z' },
+                    { id: '1769091432392', text: '英語を勉強する', completed: true, createdAt: '2026-01-22T14:17:12.392Z' },
+                    { id: '1769495233931', text: 'マクロを覚える', completed: false, createdAt: '2026-01-27T06:27:13.931Z' },
+                    { id: '1769091546479', text: 'SNS投稿をする', completed: false, createdAt: '2026-01-22T14:19:06.479Z' },
+                    { id: '1769091501451', text: '日記を書く', completed: false, createdAt: '2026-01-22T14:18:21.451Z' }
+                ];
+
+                // LocalStorageに保存
+                localStorage.setItem('self_hero_history', JSON.stringify(historyData));
+                localStorage.setItem('self_hero_character_levels', JSON.stringify(characterLevels));
+                localStorage.setItem('self_hero_selected_character', 'bolt');
+                localStorage.setItem('self_hero_todos', JSON.stringify(todos));
+                localStorage.setItem('self_hero_daily_levelup', JSON.stringify({ date: 'Sun Feb 01 2026', characterId: 'bolt' }));
+                localStorage.setItem('self_hero_notification_enabled', 'true');
+                localStorage.setItem('self_hero_font', 'pixel');
+
+                document.getElementById('result').innerHTML = '<span class="success">✅ データ修復完了！\n\n「アプリを開く」ボタンをタップしてください。</span>';
+            } catch (e) {
+                document.getElementById('result').innerHTML = '<span class="error">❌ エラー: ' + e.message + '</span>';
+            }
+        }
+
+        function checkData() {
+            try {
+                const history = localStorage.getItem('self_hero_history');
+                if (history) {
+                    const data = JSON.parse(history);
+                    const completed = data.dailyRecords.filter(r => r.completed).length;
+                    const total = data.dailyRecords.length;
+                    document.getElementById('result').innerHTML =
+                        '📊 現在のデータ:\n\n' +
+                        '達成日数: ' + completed + '日\n' +
+                        '記録日数: ' + total + '日\n' +
+                        '達成率: ' + Math.round(completed / total * 100) + '%\n\n' +
+                        '日付一覧:\n' + data.dailyRecords.map(r => r.date + ': ' + (r.completed ? '✅' : '❌')).join('\n');
+                } else {
+                    document.getElementById('result').innerHTML = '<span class="error">履歴データがありません</span>';
+                }
+            } catch (e) {
+                document.getElementById('result').innerHTML = '<span class="error">エラー: ' + e.message + '</span>';
+            }
+        }
+
+        function goToApp() {
+            window.location.href = 'https://takuma.vercel.app/';
+        }
+    </script>
+</body>
+
+</html>
