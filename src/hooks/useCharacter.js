@@ -427,7 +427,15 @@ export const CHARACTERS = {
 // レベルに応じた画像を取得
 export const getImageForLevel = (character, level) => {
     if (!character?.images) return character?.fallbackImage || '/assets/dragon.png';
-    // ユーザー要望により、レベルアップしても画像はそのまま（Lv1のまま）にする
+
+    // レベルに応じた画像を返す
+    const thresholds = [100, 30, 7, 1];
+    for (const threshold of thresholds) {
+        if (level >= threshold && character.images[threshold]) {
+            return character.images[threshold];
+        }
+    }
+
     return character.images[1] || character.fallbackImage;
 };
 
